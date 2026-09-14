@@ -1,0 +1,12 @@
+RewriteEngine On
+RewriteBase /
+
+RewriteRule ^api/place-photo$ /place-info.php [L,QSA]
+RewriteRule ^api/place-info$ /place-info.php [L,QSA]
+RewriteRule ^api/place-reviews$ /place-reviews.php [L,QSA]
+
+RewriteCond %{REQUEST_FILENAME} -f [OR]
+RewriteCond %{REQUEST_FILENAME} -d
+RewriteRule ^ - [L]
+
+RewriteRule . /index.html [L]

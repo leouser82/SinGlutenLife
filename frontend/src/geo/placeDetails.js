@@ -1,3 +1,4 @@
+import { fetchApiJson } from './api.js'
 import { mapEmbedUrl, parseOpeningHours } from './hours.js'
 
 const GENERIC_WORD = /^(restaurante|confiter[ií]a|panader[ií]a|diet[eé]tica|farmacia|comida|take|away|cafeter[ií]a|parrilla|el|la|los|las|de|del|y|bar)$/i
@@ -191,8 +192,8 @@ export async function loadCardPhoto(place, area = '') {
     if (photoCache.has(key)) return photoCache.get(key)
     let url = ''
     try {
-      const data = await fetchJson(`/api/place-photo?${placeParams(place, area)}`, 25000)
-      url = data?.photo || ''
+      const data = await fetchApiJson(`/place-info.php?${placeParams(place, area)}`, 25000)
+      url = data?.photo || data?.photos?.[0] || ''
     } catch {
       url = ''
     }
@@ -247,7 +248,7 @@ export async function loadPlaceReviews(place, area = '') {
   if (cached?.reviews?.length || cached?.rating) return cached
 
   try {
-    const data = packReviews(await fetchJson(`/place-reviews.php?${placeParams(place, area)}`, 12000))
+    const data = packReviews(await fetchApiJson(`/place-reviews.php?${placeParams(place, area)}`, 12000))
     if (data.reviews.length || data.rating) {
       reviewCache.set(place.id, data)
       return data
@@ -259,9 +260,9 @@ export async function loadPlaceReviews(place, area = '') {
 }
 
 async function fetchLivePlace(place, area) {
-  // En Hostinger responde public/place-info.php; en dev, el mismo path lo
-  // atiende el motor en Node.
-  const data = await fetchJson(`/place-info.php?${placeParams(place, area)}`, 30000)
+  // Hostinger: public/place-info.php next to the front. In Nexo dev, the same
+  // path under /singluten/ is served by Node.
+  const data = await fetchApiJson(`/place-info.php?${placeParams(place, area)}`, 30000)
   return data || {}
 }
 

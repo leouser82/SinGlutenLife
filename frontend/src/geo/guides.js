@@ -1,13 +1,15 @@
+import { fetchApiJson } from './api.js'
 import { distanceKm } from './geo.js'
 
 /**
  * Lugares sin TACC tomados de las guías que publican el dato. Todo corre en el
  * navegador, así funciona igual en desarrollo y en Hostinger:
- *  - CeliMap no habilita CORS, así que pasa por gf-guides.php (o su gemelo dev).
+ *  - CeliMap no habilita CORS, así que pasa por public/gf-guides.php (en Nexo
+ *    el gemelo de desarrollo atiende el mismo path).
  *  - El mapa de SinTaccto se baja directo desde Google, que sí lo permite.
  */
 
-const CELIMAP_ENDPOINT = '/gf-guides.php'
+const CELIMAP_PATH = '/gf-guides.php'
 const CELIMAP_PAGE = 'https://www.celimap.com.ar/lugar'
 const SINTACCTO_MID = '18wKMA95xo1ZX2iyGu9_-iv3Jr9gilM4'
 const SINTACCTO_KML = `https://www.google.com/maps/d/kml?mid=${SINTACCTO_MID}&forcekml=1`
@@ -77,8 +79,7 @@ async function fetchText(url, timeoutMs) {
 }
 
 async function loadCelimap() {
-  const raw = await fetchText(CELIMAP_ENDPOINT, 30000)
-  const data = JSON.parse(raw)
+  const data = await fetchApiJson(CELIMAP_PATH, 30000)
   return (data.places || [])
     .filter((item) => item?.status !== 'rejected' && item?.location?.lat && item?.location?.lng)
     .map((item) => {

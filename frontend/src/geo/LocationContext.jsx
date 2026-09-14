@@ -3,6 +3,36 @@ import { rememberPlaces } from './placeCache.js'
 import { detectLocation } from './geo.js'
 import { fetchNearbyPlaces } from './places.js'
 
+const LOC_KEY = 'sgl-last-loc-v1'
+
+function readSavedLoc() {
+  try {
+    const data = JSON.parse(localStorage.getItem(LOC_KEY) || '')
+    if (!Number.isFinite(data?.lat) || !Number.isFinite(data?.lon)) return null
+    if (Date.now() - Number(data.at || 0) > 14 * 86400000) return null
+    return data
+  } catch {
+    return null
+  }
+}
+
+function saveLoc(found) {
+  try {
+    localStorage.setItem(
+      LOC_KEY,
+      JSON.stringify({
+        lat: found.lat,
+        lon: found.lon,
+        label: found.label,
+        source: found.source,
+        at: Date.now(),
+      }),
+    )
+  } catch {
+    // cupo del navegador
+  }
+}
+
 const LocationContext = createContext({
   status: 'locating',
   coords: null,
@@ -32,6 +62,7 @@ export function LocationProvider({ children }) {
     setSource(found.source)
     setStatus('ready')
     setError('')
+    saveLoc(found)
   }, [])
 
   const loadPlaces = useCallback(async (lat, lon) => {
@@ -55,17 +86,28 @@ export function LocationProvider({ children }) {
   }, [])
 
   const locate = useCallback(async () => {
-    setStatus('locating')
+    const saved = readSavedLoc()
+    if (saved) {
+      applyFix(saved)
+      loadPlaces(saved.lat, saved.lon)
+    } else {
+      setStatus('locating')
+      setLabel('Buscando…')
+    }
     setError('')
-    setLabel('Buscando…')
     try {
       const found = await detectLocation((early) => {
-        applyFix(early)
-        loadPlaces(early.lat, early.lon)
+        if (early.source === 'gps' || !saved) {
+          applyFix(early)
+          loadPlaces(early.lat, early.lon)
+        }
       })
-      applyFix(found)
-      await loadPlaces(found.lat, found.lon)
+      if (found.source === 'gps' || !saved) {
+        applyFix(found)
+        await loadPlaces(found.lat, found.lon)
+      }
     } catch {
+      if (saved) return
       setStatus('error')
       setLabel('Ubicación no disponible')
       setError('No pudimos leer tu ubicación. Elegí una ciudad o activá el GPS.')

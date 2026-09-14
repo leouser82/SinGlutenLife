@@ -5,6 +5,9 @@ import { hoursLines } from '../geo/guideHours.js'
 import { getCachedPlace } from '../geo/placeCache.js'
 import { formatArs, getCachedReviews, loadPlaceDetails, loadPlaceReviews, mergeReviewPack } from '../geo/placeDetails.js'
 import { useLocationData } from '../geo/LocationContext.jsx'
+import { useI18n } from '../i18n/LanguageContext.jsx'
+import { labelOf } from '../i18n/labels.js'
+import T from '../i18n/T.jsx'
 
 const EMPTY_REVIEWS = { reviews: [], rating: null, reviewCount: null, mapsUrl: '' }
 
@@ -91,6 +94,7 @@ function buildOfferCards(details, mentions, menu) {
 export default function PlaceDetalle() {
   const { id } = useParams()
   const navigate = useNavigate()
+  const { t } = useI18n()
   const { places, pharmacies, label } = useLocationData()
   const decoded = decodeURIComponent(id || '')
   const place =
@@ -138,9 +142,9 @@ export default function PlaceDetalle() {
   if (!place) {
     return (
       <main className="page">
-        <p>No encontramos ese lugar. Volvé a la lista para cargarlo de nuevo.</p>
+        <p>{t('place.notFound')}</p>
         <Link className="linkish" to="/lugares">
-          Ver lugares
+          {t('place.seeList')}
         </Link>
       </main>
     )
@@ -159,20 +163,20 @@ export default function PlaceDetalle() {
   const gfConfirmed = place.certified || details?.gfOfficial || details?.gfState === 'confirmado'
 
   const tabs = [
-    { id: 'fotos', label: 'Fotos' },
-    offers.length ? { id: 'menu', label: 'Menú' } : null,
-    { id: 'horarios', label: 'Horarios' },
-    { id: 'opiniones', label: 'Opiniones' },
+    { id: 'fotos', label: t('place.tabPhotos') },
+    offers.length ? { id: 'menu', label: t('place.tabMenu') } : null,
+    { id: 'horarios', label: t('place.tabHours') },
+    { id: 'opiniones', label: t('place.tabReviews') },
   ].filter(Boolean)
 
   return (
     <main className="page">
       <button className="back" onClick={() => navigate(-1)}>
-        ← Volver
+        {t('place.back')}
       </button>
 
       <p className="meta" style={{ margin: '0 0 4px' }}>
-        {place.type} · {formatDistance(place.distanceKm)}
+        {labelOf(t, 'type', place.type)} · {formatDistance(place.distanceKm)}
       </p>
       <h2 className="page-title">{place.name}</h2>
       {rating ? (
@@ -186,14 +190,14 @@ export default function PlaceDetalle() {
 
       <div className="tags" style={{ marginBottom: 14 }}>
         {place.level === 'dedicado' || gfConfirmed ? (
-          <span className="tag ok">100% sin gluten</span>
+          <span className="tag ok">{t('card.dedicated')}</span>
         ) : place.level === 'opciones' || gfMentions.length ? (
-          <span className="tag ok">Opciones sin TACC</span>
+          <span className="tag ok">{t('card.options')}</span>
         ) : (
-          <span className="tag warn">Sin TACC sin confirmar</span>
+          <span className="tag warn">{t('place.unconfirmed')}</span>
         )}
-        {details?.cuisine ? <span className="tag">{details.cuisine}</span> : null}
-        {hours.openLabel ? <span className="tag ok">{hours.openLabel}</span> : null}
+        {details?.cuisine ? <T as="span" className="tag" text={details.cuisine} /> : null}
+        {hours.openLabel ? <T as="span" className="tag ok" text={hours.openLabel} /> : null}
       </div>
 
       <section id="fotos" className="place-gallery">
@@ -201,9 +205,9 @@ export default function PlaceDetalle() {
           {photo ? (
             <img src={photo} alt={place.name} onError={() => dropPhoto(photo)} />
           ) : details?.mapEmbed ? (
-            <iframe title="Mapa" src={details.mapEmbed} className="place-map" />
+            <iframe title={t('place.map')} src={details.mapEmbed} className="place-map" />
           ) : (
-            <div className="place-photo-empty">Todavía no hay fotos de este local</div>
+            <div className="place-photo-empty">{t('place.noPhotos')}</div>
           )}
           {photos.length > 1 ? (
             <>
@@ -259,53 +263,71 @@ export default function PlaceDetalle() {
         ))}
       </nav>
 
-      {loading ? <p className="note">Buscando fotos, horarios y datos publicados del local…</p> : null}
+      {loading ? <p className="note">{t('place.loading')}</p> : null}
 
       <div className="place-split">
         <section className="card place-block">
-          <h3>Sobre el lugar</h3>
-          <p>{details?.about || `${place.name} es una ${place.type.toLowerCase()}${place.address ? ` en ${place.address}` : ''}.`}</p>
+          <h3>{t('place.about')}</h3>
+          {details?.about ? (
+            <T as="p" text={details.about} />
+          ) : (
+            <p>
+              {t('place.aboutFallback', {
+                name: place.name,
+                type: labelOf(t, 'type', place.type).toLowerCase(),
+                where: place.address ? t('place.in', { address: place.address }) : '',
+              })}
+            </p>
+          )}
           {details?.guideFacts?.length ? (
             <dl className="guide-facts">
               {details.guideFacts.map((fact) => (
                 <div key={fact.label}>
-                  <dt>{fact.label}</dt>
-                  <dd>{fact.value}</dd>
+                  <dt>
+                    <T text={fact.label} />
+                  </dt>
+                  <dd>
+                    <T text={fact.value} />
+                  </dd>
                 </div>
               ))}
             </dl>
           ) : null}
-          {details?.phone ? <p className="note">Tel: {details.phone}</p> : null}
+          {details?.phone ? <p className="note">{t('place.tel', { n: details.phone })}</p> : null}
           {features.length ? (
             <ul className="feature-list">
               {features.map((item) => (
                 <li key={item.label}>
-                  {item.ok ? '✓' : '✕'} {item.label}
+                  {item.ok ? '✓' : '✕'} <T text={item.label} />
                 </li>
               ))}
             </ul>
           ) : null}
         </section>
         <section className="card place-block" id="menu">
-          <h3>Qué ofrecen sin TACC</h3>
+          <h3>{t('place.offers')}</h3>
           {offers.length ? (
             <div className="gf-evidence">
               {offers.map((item) => (
                 <article className="offer-card" key={item.text.slice(0, 48)}>
-                  <p>{item.text}</p>
+                  <T as="p" text={item.text} />
                   <div className="offer-meta">
-                    {item.gf ? <span className="tag ok">Sin TACC</span> : null}
+                    {item.gf ? <span className="tag ok">{t('place.tacc')}</span> : null}
                     {item.notes
                       .filter((note) => note && note !== 'Sin TACC')
-                      .map((note) => (
-                        <span className="tag" key={note}>
-                          {note}
-                        </span>
-                      ))}
+                      .map((note) =>
+                        note === 'Publicado en su web' ? (
+                          <span className="tag" key={note}>
+                            {t('place.webNote')}
+                          </span>
+                        ) : (
+                          <T as="span" className="tag" key={note} text={note} />
+                        ),
+                      )}
                     {item.price ? <strong>{formatArs(item.price)}</strong> : null}
                     {item.source ? (
                       <a href={item.source} target="_blank" rel="noreferrer">
-                        {hostOf(item.source) || 'Fuente'}
+                        {hostOf(item.source) || t('place.source')}
                       </a>
                     ) : null}
                   </div>
@@ -313,33 +335,31 @@ export default function PlaceDetalle() {
               ))}
             </div>
           ) : (
-            <p className="note">
-              No encontramos ninguna publicación del local sobre sin TACC. Preguntá antes de comprar.
-            </p>
+            <p className="note">{t('place.noOffers')}</p>
           )}
         </section>
       </div>
 
       <div className="place-split">
         <section className="card place-block">
-          <h3>Ubicación</h3>
+          <h3>{t('place.location')}</h3>
           {place.address ? <p>{place.address}</p> : null}
           <a className="maps-link" href={mapsUrl(place)} target="_blank" rel="noreferrer">
-            Ver en Google Maps
+            {t('place.gmaps')}
           </a>
-          {details?.mapEmbed ? <iframe title="Mapa del lugar" src={details.mapEmbed} className="place-map-embed" /> : null}
+          {details?.mapEmbed ? <iframe title={t('place.mapTitle')} src={details.mapEmbed} className="place-map-embed" /> : null}
         </section>
         <section className="card place-block" id="horarios">
           <div className="hours-head">
-            <h3>Horarios</h3>
-            {hours.openLabel ? <span className="tag ok">{hours.openLabel}</span> : null}
+            <h3>{t('place.tabHours')}</h3>
+            {hours.openLabel ? <T as="span" className="tag ok" text={hours.openLabel} /> : null}
           </div>
           {hours.rows.length ? (
             <ul className="hours-list">
               {hours.rows.map((row) => (
                 <li key={row.key} className={row.range === 'Cerrado' ? 'off' : ''}>
-                  <span>{row.day}</span>
-                  <strong>{row.range}</strong>
+                  <span>{labelOf(t, 'day', row.day)}</span>
+                  <strong>{row.range === 'Cerrado' ? t('hours.closed') : row.range}</strong>
                 </li>
               ))}
             </ul>
@@ -347,24 +367,24 @@ export default function PlaceDetalle() {
             <ul className="hours-list plain">
               {hoursLines(details.hoursRaw).map((line) => (
                 <li key={line}>
-                  <span>{line}</span>
+                  <T as="span" text={line} />
                 </li>
               ))}
             </ul>
           ) : hours.openLabel ? (
-            <p>{hours.openLabel}</p>
+            <T as="p" text={hours.openLabel} />
           ) : (
-            <p className="note">No hay horario publicado para este local.</p>
+            <p className="note">{t('place.noHours')}</p>
           )}
         </section>
       </div>
 
       <section className="card place-block" id="opiniones">
-        <h3>Opiniones</h3>
+        <h3>{t('place.reviews')}</h3>
         {rating ? (
           <p className="note">
-            {String(rating).replace('.', ',')} estrellas en Google
-            {reviewCount ? ` · ${reviewCount} opiniones` : ''}
+            {t('place.stars', { n: String(rating).replace('.', ',') })}
+            {reviewCount ? t('place.reviewCount', { n: reviewCount }) : ''}
           </p>
         ) : null}
         {reviews.length ? (
@@ -372,38 +392,40 @@ export default function PlaceDetalle() {
             {reviews.map((review) => (
               <article key={review.text.slice(0, 24)}>
                 <h4>{review.author}</h4>
-                <p>{review.text}</p>
+                <T as="p" text={review.text} />
               </article>
             ))}
           </div>
         ) : (
-          <p className="note">Todavía no hay reseñas públicas para mostrar. Podés ver más en Google.</p>
+          <p className="note">{t('place.noReviews')}</p>
         )}
         {details?.guideUrl ? (
             <p className="note" style={{ marginTop: 10 }}>
-              Figura en{' '}
+              {t('place.listed')}{' '}
               <a className="maps-link" href={details.guideUrl} target="_blank" rel="noreferrer">
-                {(details.guides || []).join(' y ') || 'la guía sin TACC'}
+                {(details.guides || []).join(t('place.and')) || t('place.theGuide')}
               </a>
             </p>
           ) : null}
           {details?.sources?.length ? (
           <p className="note" style={{ marginTop: 10 }}>
-            Datos públicos de {details.sources.map((url) => new URL(url).hostname.replace(/^www\./, '')).join(', ')}
+            {t('place.publicData', {
+              hosts: details.sources.map((url) => new URL(url).hostname.replace(/^www\./, '')).join(', '),
+            })}
           </p>
         ) : null}
         <a className="btn btn-light" style={{ marginTop: 12 }} href={mapsUrl(place)} target="_blank" rel="noreferrer">
-          Ver opiniones en Google
+          {t('place.googleReviews')}
         </a>
       </section>
 
       <div className="hero-actions" style={{ marginTop: 18 }}>
         <a className="btn btn-light" href={mapsDirectionsUrl(place)} target="_blank" rel="noreferrer">
-          Cómo llegar
+          {t('card.directions')}
         </a>
         {details?.website ? (
           <a className="btn btn-ghost" href={details.website} target="_blank" rel="noreferrer">
-            Sitio o menú
+            {t('place.siteMenu')}
           </a>
         ) : null}
       </div>

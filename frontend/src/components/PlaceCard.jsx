@@ -4,6 +4,8 @@ import { formatDistance, mapsDirectionsUrl } from '../geo/geo.js'
 import { isOpenNow, todayLine } from '../geo/guideHours.js'
 import { loadCardPhoto } from '../geo/placeDetails.js'
 import { useLocationData } from '../geo/LocationContext.jsx'
+import { useI18n } from '../i18n/LanguageContext.jsx'
+import { displayTodayLine, labelOf } from '../i18n/labels.js'
 
 /**
  * Shows a photo of this place or a neutral tile. Never a stock image.
@@ -48,15 +50,17 @@ function PlaceThumb({ place }) {
   return <img className="place-thumb" ref={holder} src={src} alt="" loading="lazy" onError={() => setSrc('')} />
 }
 
-function GlutenTag({ place }) {
-  if (place.level === 'dedicado') return <span className="tag ok">100% sin gluten</span>
-  if (place.level === 'opciones') return <span className="tag ok">Opciones sin TACC</span>
+function GlutenTag({ place, t }) {
+  if (place.level === 'dedicado') return <span className="tag ok">{t('card.dedicated')}</span>
+  if (place.level === 'opciones') return <span className="tag ok">{t('card.options')}</span>
   return null
 }
 
 export default function PlaceCard({ place, extra, to }) {
+  const { t } = useI18n()
   const dist = formatDistance(place.distanceKm)
   const href = to || `/lugar/${encodeURIComponent(place.id)}`
+  const hours = displayTodayLine(todayLine(place.hours), t)
 
   return (
     <Link to={href} className="card place-card">
@@ -64,10 +68,10 @@ export default function PlaceCard({ place, extra, to }) {
       <div>
         <h4>{place.name}</h4>
         <div className="meta">
-          {place.type}
+          {labelOf(t, 'type', place.type)}
           {place.address ? ` · ${place.address}` : ''}
         </div>
-        {todayLine(place.hours) ? <div className="meta">{todayLine(place.hours)}</div> : null}
+        {hours ? <div className="meta">{hours}</div> : null}
       </div>
       <div className="distance">
         {dist}
@@ -80,15 +84,17 @@ export default function PlaceCard({ place, extra, to }) {
               window.open(mapsDirectionsUrl(place), '_blank', 'noopener,noreferrer')
             }}
           >
-            Cómo llegar
+            {t('card.directions')}
           </span>
         ) : null}
       </div>
       <div className="tags">
-        {isOpenNow(place.hours) === true ? <span className="tag ok">Abierto ahora</span> : null}
-        <GlutenTag place={place} />
-        {/mixta/i.test(place.kitchen || '') ? <span className="tag">Cocina mixta</span> : null}
-        {(place.guides || []).length > 1 ? <span className="tag">En {place.guides.length} guías</span> : null}
+        {isOpenNow(place.hours) === true ? <span className="tag ok">{t('card.open')}</span> : null}
+        <GlutenTag place={place} t={t} />
+        {/mixta/i.test(place.kitchen || '') ? <span className="tag">{t('card.mixed')}</span> : null}
+        {(place.guides || []).length > 1 ? (
+          <span className="tag">{t('card.inGuides', { n: place.guides.length })}</span>
+        ) : null}
         {extra}
       </div>
     </Link>

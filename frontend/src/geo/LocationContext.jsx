@@ -1,4 +1,5 @@
-import { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react'
+import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react'
+import { useI18n } from '../i18n/LanguageContext.jsx'
 import { rememberPlaces } from './placeCache.js'
 import { detectLocation } from './geo.js'
 import { fetchNearbyPlaces } from './places.js'
@@ -47,9 +48,12 @@ const LocationContext = createContext({
 })
 
 export function LocationProvider({ children }) {
+  const { t } = useI18n()
+  const tRef = useRef(t)
+  tRef.current = t
   const [status, setStatus] = useState('locating')
   const [coords, setCoords] = useState(null)
-  const [label, setLabel] = useState('Buscando…')
+  const [label, setLabel] = useState(() => t('loc.searching'))
   const [source, setSource] = useState(null)
   const [places, setPlaces] = useState([])
   const [pharmacies, setPharmacies] = useState([])
@@ -92,7 +96,7 @@ export function LocationProvider({ children }) {
       loadPlaces(saved.lat, saved.lon)
     } else {
       setStatus('locating')
-      setLabel('Buscando…')
+      setLabel(tRef.current('loc.searching'))
     }
     setError('')
     try {
@@ -109,8 +113,8 @@ export function LocationProvider({ children }) {
     } catch {
       if (saved) return
       setStatus('error')
-      setLabel('Ubicación no disponible')
-      setError('No pudimos leer tu ubicación. Elegí una ciudad o activá el GPS.')
+      setLabel(tRef.current('loc.unavailable'))
+      setError(tRef.current('loc.error'))
     }
   }, [applyFix, loadPlaces])
 
@@ -125,6 +129,14 @@ export function LocationProvider({ children }) {
   useEffect(() => {
     locate()
   }, [locate])
+
+  useEffect(() => {
+    if (status === 'locating' && !coords) setLabel(t('loc.searching'))
+    if (status === 'error') {
+      setLabel(t('loc.unavailable'))
+      setError(t('loc.error'))
+    }
+  }, [t, status, coords])
 
   const value = useMemo(
     () => ({

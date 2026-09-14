@@ -1,0 +1,75 @@
+{
+  "recipes": [
+    {
+      "id": "c-mu1oc8x6qi",
+      "community": true,
+      "title": "Budín de naranja de la abuela",
+      "summary": "Harina de arroz, naranja y un molde de siempre.",
+      "minutes": 30,
+      "servings": 2,
+      "difficulty": "Fácil",
+      "tags": [
+        "Almuerzo",
+        "Postre"
+      ],
+      "ingredients": [
+        {
+          "name": "Harina de arroz",
+          "qty": "200 g",
+          "shop": "almacen"
+        }
+      ],
+      "steps": [
+        "Mezclar, hornear 35 minutos y dejar enfriar."
+      ],
+      "image": "",
+      "sourceName": "Leo",
+      "sourceUrl": "",
+      "author": {
+        "id": "google:local:leo",
+        "name": "Leo",
+        "picture": "",
+        "provider": "google"
+      },
+      "createdAt": 1789416428610
+    },
+    {
+      "id": "c-testmesa1",
+      "community": true,
+      "title": "Tortilla de papa sin TACC",
+      "summary": "La de siempre, con harina de arroz para ligar.",
+      "minutes": 35,
+      "servings": 4,
+      "difficulty": "Fácil",
+      "tags": [
+        "Almuerzo"
+      ],
+      "ingredients": [
+        {
+          "name": "Papas",
+          "qty": "4",
+          "shop": "verduleria"
+        },
+        {
+          "name": "Huevos",
+          "qty": "4 u",
+          "shop": "almacen"
+        }
+      ],
+      "steps": [
+        "Hervir las papas y aplastarlas.",
+        "Batir los huevos, mezclar y dorar."
+      ],
+      "image": "",
+      "sourceName": "Leo",
+      "sourceUrl": "",
+      "author": {
+        "id": "google:local:leo",
+        "name": "Leo",
+        "picture": "",
+        "provider": "google"
+      },
+      "createdAt": 1789416163561
+    }
+  ]
+}

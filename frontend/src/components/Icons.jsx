@@ -24,6 +24,9 @@ export function IconMeal() {
 export function IconBook() {
   return <Icon d="M5 5.5A2.5 2.5 0 0 1 7.5 3H20v16H7.5A2.5 2.5 0 0 0 5 21.5V5.5zM5 21.5h15" />
 }
+export function IconPlus() {
+  return <Icon d="M12 5v14M5 12h14" />
+}
 
 export function BrandMark() {
   return (

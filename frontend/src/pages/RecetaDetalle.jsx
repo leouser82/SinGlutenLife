@@ -1,10 +1,10 @@
 import { useEffect, useState } from 'react'
 import { Link, useNavigate, useParams } from 'react-router-dom'
 import RecipePhoto from '../components/RecipePhoto.jsx'
-import { recipes } from '../data/recipes.js'
 import { formatDistance } from '../geo/geo.js'
 import { loadGroceryShops, mapsShopUrl, shopForIngredient } from '../geo/ingredientShops.js'
 import { useLocationData } from '../geo/LocationContext.jsx'
+import { useCommunity } from '../community/CommunityContext.jsx'
 import { useI18n } from '../i18n/LanguageContext.jsx'
 import { labelOf } from '../i18n/labels.js'
 import T from '../i18n/T.jsx'
@@ -13,8 +13,10 @@ export default function RecetaDetalle() {
   const { id } = useParams()
   const navigate = useNavigate()
   const { t } = useI18n()
+  const { allRecipes } = useCommunity()
   const { coords, places, placesStatus } = useLocationData()
-  const recipe = recipes.find((item) => item.id === id)
+  const recipe = allRecipes.find((item) => item.id === id)
+  const waiting = !recipe && String(id || '').startsWith('c-')
   const [shops, setShops] = useState([])
   const [shopStatus, setShopStatus] = useState('idle')
 
@@ -38,7 +40,7 @@ export default function RecetaDetalle() {
   if (!recipe) {
     return (
       <main className="page">
-        <p>{t('recipe.missing')}</p>
+        <p>{waiting ? t('cook.loading') : t('recipe.missing')}</p>
         <Link className="linkish" to="/recetas">
           {t('recipe.back')}
         </Link>
@@ -51,26 +53,37 @@ export default function RecetaDetalle() {
       <button className="back" onClick={() => navigate(-1)}>
         {t('place.back')}
       </button>
-      <T as="h2" className="page-title" text={recipe.title} />
+      {recipe.community ? <h2 className="page-title">{recipe.title}</h2> : <T as="h2" className="page-title" text={recipe.title} />}
       <RecipePhoto recipe={recipe} className="recipe-photo detail" />
-      <T as="p" className="note" style={{ marginTop: 0 }} text={recipe.summary} />
+      {recipe.community ? (
+        <p className="note" style={{ marginTop: 0 }}>
+          {recipe.summary}
+        </p>
+      ) : (
+        <T as="p" className="note" style={{ marginTop: 0 }} text={recipe.summary} />
+      )}
       <div className="row-stats" style={{ marginBottom: 8 }}>
         <span>{t('home.min', { n: recipe.minutes })}</span>
         <span>{t('home.servings', { n: recipe.servings })}</span>
         <span>{labelOf(t, 'diff', recipe.difficulty)}</span>
       </div>
       <p className="note">
-        {t('recipe.by')}{' '}
-        <a className="maps-link" href={recipe.sourceUrl} target="_blank" rel="noreferrer">
-          {recipe.sourceName}
-        </a>
+        {recipe.community ? t('cook.byCook') : t('recipe.by')}{' '}
+        {recipe.sourceUrl ? (
+          <a className="maps-link" href={recipe.sourceUrl} target="_blank" rel="noreferrer">
+            {recipe.sourceName}
+          </a>
+        ) : (
+          <strong>{recipe.sourceName}</strong>
+        )}
       </p>
+      {recipe.community ? <p className="banner-proto">{t('cook.hint')}</p> : null}
 
       <h3 style={{ fontFamily: 'Fraunces, Georgia, serif' }}>{t('recipe.how')}</h3>
       <ol className="steps">
-        {recipe.steps.map((step) => (
-          <T as="li" key={step} text={step} />
-        ))}
+        {recipe.steps.map((step) =>
+          recipe.community ? <li key={step}>{step}</li> : <T as="li" key={step} text={step} />,
+        )}
       </ol>
 
       <h3 style={{ fontFamily: 'Fraunces, Georgia, serif' }}>{t('recipe.ings')}</h3>
@@ -83,7 +96,7 @@ export default function RecetaDetalle() {
           return (
             <article className="ingredient" key={ing.name}>
               <div>
-                <T as="strong" text={ing.name} />
+                {recipe.community ? <strong>{ing.name}</strong> : <T as="strong" text={ing.name} />}
                 <div className="meta">
                   {ing.qty} · {labelOf(t, 'shop', ing.shop, t('shop.comercio'))}
                 </div>

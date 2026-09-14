@@ -2,7 +2,8 @@ import { Link } from 'react-router-dom'
 import AreaChips from '../components/AreaChips.jsx'
 import PlaceCard from '../components/PlaceCard.jsx'
 import RecipePhoto from '../components/RecipePhoto.jsx'
-import { recipeOfTheDay, recipes } from '../data/recipes.js'
+import { useCommunity } from '../community/CommunityContext.jsx'
+import { recipeOfTheDay } from '../data/recipes.js'
 import { isOpenNow } from '../geo/guideHours.js'
 import { useLocationData } from '../geo/LocationContext.jsx'
 import { useI18n } from '../i18n/LanguageContext.jsx'
@@ -12,6 +13,7 @@ import T from '../i18n/T.jsx'
 export default function Home() {
   const { places, placesStatus, label, status, locate, source, error } = useLocationData()
   const { t } = useI18n()
+  const { allRecipes, community } = useCommunity()
   const nearby = [...places].sort((a, b) => a.distanceKm - b.distanceKm)
   const nearest = nearby[0]
   const daily = recipeOfTheDay()
@@ -111,11 +113,26 @@ export default function Home() {
 
       <div className="section-head">
         <h3>{t('home.cookHome')}</h3>
-        <Link to="/recetas">{t('home.nRecipes', { n: recipes.length })}</Link>
+        <Link to="/recetas">{t('home.nRecipes', { n: allRecipes.length })}</Link>
       </div>
       <p className="note" style={{ marginTop: 0 }}>
         {t('home.cookNote')}
       </p>
+      {community[0] ? (
+        <Link className="card recipe-card from-cook" to={`/recetas/${community[0].id}`}>
+          <span className="cook-ribbon">{t('cook.community')}</span>
+          <h4>{community[0].title}</h4>
+          <p>{community[0].summary}</p>
+          <p className="meta">
+            {t('cook.byCook')} {community[0].sourceName}
+          </p>
+        </Link>
+      ) : (
+        <Link className="cook-banner compact" to="/recetas/nueva">
+          <strong>{t('cook.bannerTitle')}</strong>
+          <span className="cook-banner-cta">{t('cook.cta')}</span>
+        </Link>
+      )}
     </main>
   )
 }

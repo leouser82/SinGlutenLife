@@ -1,6 +1,7 @@
 import { Link } from 'react-router-dom'
 import AreaChips from '../components/AreaChips.jsx'
 import PlaceCard from '../components/PlaceCard.jsx'
+import RecipeCard from '../components/RecipeCard.jsx'
 import RecipePhoto from '../components/RecipePhoto.jsx'
 import { useCommunity } from '../community/CommunityContext.jsx'
 import { recipeOfTheDay } from '../data/recipes.js'
@@ -118,21 +119,19 @@ export default function Home() {
       <p className="note" style={{ marginTop: 0 }}>
         {t('home.cookNote')}
       </p>
-      {community[0] ? (
-        <Link className="card recipe-card from-cook" to={`/recetas/${community[0].id}`}>
-          <span className="cook-ribbon">{t('cook.community')}</span>
-          <h4>{community[0].title}</h4>
-          <p>{community[0].summary}</p>
-          <p className="meta">
-            {t('cook.byCook')} {community[0].sourceName}
-          </p>
-        </Link>
-      ) : (
-        <Link className="cook-banner compact" to="/recetas/nueva">
-          <strong>{t('cook.bannerTitle')}</strong>
-          <span className="cook-banner-cta">{t('cook.cta')}</span>
-        </Link>
-      )}
+      <Link className="cook-banner" to="/recetas/nueva">
+        <span className="cook-kicker">{t('cook.bannerKicker')}</span>
+        <strong>{t('cook.bannerTitle')}</strong>
+        <p>{t('cook.bannerBody')}</p>
+        <span className="cook-banner-cta">{t('cook.cta')}</span>
+      </Link>
+      {community.length ? (
+        <div className="grid-cards home-cook-grid">
+          {community.slice(0, 2).map((recipe) => (
+            <RecipeCard key={recipe.id} recipe={recipe} />
+          ))}
+        </div>
+      ) : null}
     </main>
   )
 }

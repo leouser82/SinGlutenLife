@@ -1156,6 +1156,10 @@ input[type='range'] {
     gap: 12px;
   }
 
+  .home-cook-grid:has(> :only-child) {
+    grid-template-columns: 1fr;
+  }
+
   .place-card,
   .meal,
   .recipe-card {
@@ -1291,6 +1295,20 @@ input[type='range'] {
   border-color: #f0d2b8;
   border-left-color: #c45c32;
   position: relative;
+}
+
+.grid-cards .recipe-card.from-cook,
+.grid-cards .recipe-card.from-cook:nth-child(3n + 2),
+.grid-cards .recipe-card.from-cook:nth-child(3n) {
+  background: linear-gradient(180deg, #fff4e8 0%, #ffffff 46%);
+  border-color: #f0d2b8;
+  border-left-color: #c45c32;
+}
+
+.grid-cards .recipe-card.from-cook .row-stats,
+.grid-cards .recipe-card.from-cook:nth-child(3n + 2) .row-stats,
+.grid-cards .recipe-card.from-cook:nth-child(3n) .row-stats {
+  color: #c45c32;
 }
 
 .cook-ribbon {

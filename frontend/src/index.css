@@ -376,6 +376,7 @@ a {
 }
 
 .card {
+  display: block;
   background: #fff;
   border: 1px solid var(--line);
   border-radius: var(--radius);
@@ -384,9 +385,11 @@ a {
   transition: transform 0.15s ease, box-shadow 0.15s ease;
 }
 
-a.card:hover,
-.meal:hover {
-  transform: translateY(-2px);
+@media (hover: hover) {
+  a.card:hover,
+  .meal:hover {
+    transform: translateY(-2px);
+  }
 }
 
 .place-card {
@@ -858,7 +861,17 @@ input[type='range'] {
   border-color: #b7dcee;
 }
 
+.grid-cards {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
 .recipe-card {
+  display: block;
+  width: 100%;
+  flex-shrink: 0;
+  overflow: hidden;
   background: linear-gradient(180deg, #eef9ff 0%, #ffffff 42%);
   border-color: #c5e4f4;
   border-left: 5px solid var(--blue);

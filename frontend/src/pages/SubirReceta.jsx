@@ -6,6 +6,7 @@ import { useCommunity } from '../community/CommunityContext.jsx'
 import { recipeTags } from '../data/recipes.js'
 import { useI18n } from '../i18n/LanguageContext.jsx'
 import { labelOf } from '../i18n/labels.js'
+import ChipRow from '../components/ChipRow.jsx'
 
 function GoogleMark() {
   return (
@@ -236,7 +237,7 @@ export default function SubirReceta() {
                 </select>
               </label>
             </div>
-            <div className="filters">
+            <ChipRow>
               {TAGS.map((tag) => (
                 <button
                   key={tag}
@@ -247,7 +248,7 @@ export default function SubirReceta() {
                   {labelOf(t, 'tag', tag)}
                 </button>
               ))}
-            </div>
+            </ChipRow>
           </div>
         ) : null}
 

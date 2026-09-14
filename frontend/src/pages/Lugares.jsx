@@ -1,9 +1,13 @@
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import AreaChips from '../components/AreaChips.jsx'
+import ChipRow from '../components/ChipRow.jsx'
+import Pager from '../components/Pager.jsx'
 import PlaceCard from '../components/PlaceCard.jsx'
 import { useLocationData } from '../geo/LocationContext.jsx'
 import { useI18n } from '../i18n/LanguageContext.jsx'
 import { labelOf } from '../i18n/labels.js'
+
+const PAGE_SIZE = 6
 
 export default function Lugares() {
   const { places, placesStatus, label, locate, source, status, error } = useLocationData()
@@ -11,6 +15,7 @@ export default function Lugares() {
   const [q, setQ] = useState('')
   const [filter, setFilter] = useState('Todos')
   const [onlyDedicated, setOnlyDedicated] = useState(false)
+  const [page, setPage] = useState(1)
 
   const filters = useMemo(() => {
     const types = [...new Set(places.map((p) => p.type))]
@@ -27,6 +32,16 @@ export default function Lugares() {
   }, [places, q, filter, onlyDedicated])
 
   const dedicated = useMemo(() => places.filter((p) => p.level === 'dedicado').length, [places])
+  const pages = Math.max(1, Math.ceil(list.length / PAGE_SIZE))
+  const visible = list.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE)
+
+  useEffect(() => {
+    setPage(1)
+  }, [q, filter, onlyDedicated, label])
+
+  useEffect(() => {
+    if (page > pages) setPage(pages)
+  }, [page, pages])
 
   const banner =
     status === 'locating' || placesStatus === 'loading'
@@ -38,6 +53,11 @@ export default function Lugares() {
           : source === 'manual'
             ? t('places.manual', { label })
             : error || t('places.noLoc')
+
+  function goPage(next) {
+    setPage(next)
+    document.querySelector('.page .grid-cards')?.scrollIntoView({ behavior: 'smooth', block: 'start' })
+  }
 
   return (
     <main className="page">
@@ -59,7 +79,7 @@ export default function Lugares() {
         value={q}
         onChange={(e) => setQ(e.target.value)}
       />
-      <div className="filters">
+      <ChipRow>
         {filters.map((f) => (
           <button key={f} className={`filter ${filter === f ? 'active' : ''}`} onClick={() => setFilter(f)}>
             {f === 'Todos' ? t('places.all') : labelOf(t, 'type', f)}
@@ -71,12 +91,13 @@ export default function Lugares() {
         >
           {t('places.onlyGf')}
         </button>
-      </div>
+      </ChipRow>
       <div className="grid-cards">
-        {list.map((p) => (
+        {visible.map((p) => (
           <PlaceCard key={p.id} place={p} />
         ))}
       </div>
+      <Pager page={page} pages={pages} onPage={goPage} />
       {placesStatus === 'loading' && <p className="note">{t('places.loadingList')}</p>}
       {placesStatus === 'ready' && places.length === 0 && (
         <p className="note">

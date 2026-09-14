@@ -8,6 +8,7 @@ import { useLocationData } from '../geo/LocationContext.jsx'
 import { useI18n } from '../i18n/LanguageContext.jsx'
 import { labelOf } from '../i18n/labels.js'
 import T from '../i18n/T.jsx'
+import ChipRow from '../components/ChipRow.jsx'
 
 const EMPTY_REVIEWS = { reviews: [], rating: null, reviewCount: null, mapsUrl: '' }
 
@@ -247,7 +248,7 @@ export default function PlaceDetalle() {
         ) : null}
       </section>
 
-      <nav className="place-tabs">
+      <ChipRow className="place-tabs">
         {tabs.map((item) => (
           <button
             key={item.id}
@@ -261,7 +262,7 @@ export default function PlaceDetalle() {
             {item.label}
           </button>
         ))}
-      </nav>
+      </ChipRow>
 
       {loading ? <p className="note">{t('place.loading')}</p> : null}
 

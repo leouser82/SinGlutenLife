@@ -1,16 +1,21 @@
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { Link } from 'react-router-dom'
+import ChipRow from '../components/ChipRow.jsx'
+import Pager from '../components/Pager.jsx'
 import RecipeCard from '../components/RecipeCard.jsx'
 import { useCommunity } from '../community/CommunityContext.jsx'
 import { recipeTags } from '../data/recipes.js'
 import { useI18n } from '../i18n/LanguageContext.jsx'
 import { labelOf } from '../i18n/labels.js'
 
+const PAGE_SIZE = 8
+
 export default function Recetas() {
   const { t } = useI18n()
   const { allRecipes } = useCommunity()
   const [q, setQ] = useState('')
   const [tag, setTag] = useState('Todas')
+  const [page, setPage] = useState(1)
   const filters = useMemo(() => [...recipeTags, 'Comunidad'], [])
 
   const list = useMemo(() => {
@@ -23,6 +28,22 @@ export default function Recetas() {
       return matchText && matchTag
     })
   }, [allRecipes, q, tag])
+
+  const pages = Math.max(1, Math.ceil(list.length / PAGE_SIZE))
+  const visible = list.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE)
+
+  useEffect(() => {
+    setPage(1)
+  }, [q, tag])
+
+  useEffect(() => {
+    if (page > pages) setPage(pages)
+  }, [page, pages])
+
+  function goPage(next) {
+    setPage(next)
+    document.querySelector('.recipes-page .grid-cards')?.scrollIntoView({ behavior: 'smooth', block: 'start' })
+  }
 
   return (
     <main className="page recipes-page">
@@ -42,7 +63,7 @@ export default function Recetas() {
         value={q}
         onChange={(e) => setQ(e.target.value)}
       />
-      <div className="filters">
+      <ChipRow>
         {filters.map((item) => (
           <button
             key={item}
@@ -53,12 +74,13 @@ export default function Recetas() {
             {item === 'Comunidad' ? t('cook.filter') : labelOf(t, 'tag', item)}
           </button>
         ))}
-      </div>
+      </ChipRow>
       <div className="grid-cards">
-        {list.map((recipe) => (
+        {visible.map((recipe) => (
           <RecipeCard key={recipe.id} recipe={recipe} />
         ))}
       </div>
+      <Pager page={page} pages={pages} onPage={goPage} />
       {list.length === 0 ? <p className="note">{t('recipes.empty')}</p> : null}
     </main>
   )

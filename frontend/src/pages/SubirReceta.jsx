@@ -19,17 +19,6 @@ function GoogleMark() {
   )
 }
 
-function FacebookMark() {
-  return (
-    <svg width="18" height="18" viewBox="0 0 24 24" aria-hidden="true">
-      <path
-        fill="#fff"
-        d="M14.5 8.5V6.8c0-.7.5-1.1 1.2-1.1H17V3h-2.2C12.3 3 11 4.5 11 6.7v1.8H9v2.7h2V21h3.5v-9.8h2.4l.4-2.7h-2.8z"
-      />
-    </svg>
-  )
-}
-
 const SHOPS = ['dietetica', 'verduleria', 'carniceria', 'almacen']
 const TAGS = recipeTags.filter((item) => item !== 'Todas')
 
@@ -40,7 +29,7 @@ function emptyIng() {
 export default function SubirReceta() {
   const { t } = useI18n()
   const navigate = useNavigate()
-  const { user, loginGoogle, loginFacebook, logout } = useAuth()
+  const { user, loginGoogle, logout } = useAuth()
   const { publish } = useCommunity()
   const [step, setStep] = useState(0)
   const [busy, setBusy] = useState('')
@@ -61,17 +50,17 @@ export default function SubirReceta() {
     [t],
   )
 
-  async function enter(provider) {
+  async function enter() {
     setError('')
-    setBusy(provider)
+    setBusy('google')
     try {
-      const cook = provider === 'facebook' ? await loginFacebook() : await loginGoogle()
+      const cook = await loginGoogle()
       if (!cook) {
-        setError(t('cook.authError'))
+        setError(t('cook.authOrigin', { origin: window.location.origin }))
         return
       }
     } catch {
-      setError(t('cook.authError'))
+      setError(t('cook.authOrigin', { origin: window.location.origin }))
     } finally {
       setBusy('')
     }
@@ -139,13 +128,9 @@ export default function SubirReceta() {
           <p className="cook-kicker">{t('cook.gateKicker')}</p>
           <h2>{t('cook.gateTitle')}</h2>
           <p>{t('cook.gateBody')}</p>
-          <button type="button" className="cook-social google" onClick={() => enter('google')} disabled={Boolean(busy)}>
+          <button type="button" className="cook-social google" onClick={() => enter()} disabled={Boolean(busy)}>
             <GoogleMark />
             {t('cook.google')}
-          </button>
-          <button type="button" className="cook-social facebook" onClick={() => enter('facebook')} disabled={Boolean(busy)}>
-            <FacebookMark />
-            {t('cook.facebook')}
           </button>
           {error ? <p className="cook-error">{error}</p> : null}
           <p className="cook-foot">

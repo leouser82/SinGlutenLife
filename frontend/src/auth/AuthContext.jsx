@@ -1,10 +1,9 @@
 import { createContext, useCallback, useContext, useMemo, useState } from 'react'
-import { clearCook, loginWithFacebook, loginWithGoogle, localCook, readCook, saveCook } from './providers.js'
+import { clearCook, loginWithGoogle, localCook, readCook, saveCook } from './providers.js'
 
 const AuthContext = createContext({
   user: null,
   loginGoogle: async () => null,
-  loginFacebook: async () => null,
   signLocal: () => null,
   logout: () => {},
 })
@@ -14,13 +13,6 @@ export function AuthProvider({ children }) {
 
   const loginGoogle = useCallback(async () => {
     const cook = await loginWithGoogle()
-    if (!cook) return null
-    setUser(saveCook(cook))
-    return cook
-  }, [])
-
-  const loginFacebook = useCallback(async () => {
-    const cook = await loginWithFacebook()
     if (!cook) return null
     setUser(saveCook(cook))
     return cook
@@ -38,8 +30,8 @@ export function AuthProvider({ children }) {
   }, [])
 
   const value = useMemo(
-    () => ({ user, loginGoogle, loginFacebook, signLocal, logout }),
-    [user, loginGoogle, loginFacebook, signLocal, logout],
+    () => ({ user, loginGoogle, signLocal, logout }),
+    [user, loginGoogle, signLocal, logout],
   )
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>

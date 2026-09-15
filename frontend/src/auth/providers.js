@@ -1,6 +1,5 @@
 const KEY = 'sgl-cook-v1'
 const GOOGLE_SRC = 'https://accounts.google.com/gsi/client'
-const FACEBOOK_SRC = 'https://connect.facebook.net/es_LA/sdk.js'
 
 function loadScript(src) {
   return new Promise((resolve, reject) => {
@@ -68,46 +67,6 @@ export async function loginWithGoogle() {
   const data = await response.json()
   if (!data?.sub || !data?.name) throw new Error('google')
   return cookFrom({ id: data.sub, name: data.name, picture: data.picture || '' }, 'google')
-}
-
-export async function loginWithFacebook() {
-  const appId = import.meta.env.VITE_FACEBOOK_APP_ID
-  if (!appId) return null
-  await loadScript(FACEBOOK_SRC)
-  await new Promise((resolve) => {
-    if (window.FB) {
-      resolve()
-      return
-    }
-    window.fbAsyncInit = () => {
-      window.FB.init({ appId, cookie: true, xfbml: false, version: 'v21.0' })
-      resolve()
-    }
-  })
-  if (!window.FB._sglInit) {
-    window.FB.init({ appId, cookie: true, xfbml: false, version: 'v21.0' })
-    window.FB._sglInit = true
-  }
-  const auth = await new Promise((resolve, reject) => {
-    window.FB.login(
-      (response) => {
-        if (response?.authResponse) resolve(response)
-        else reject(new Error('facebook'))
-      },
-      { scope: 'public_profile,email' },
-    )
-  })
-  if (!auth) throw new Error('facebook')
-  const profile = await new Promise((resolve, reject) => {
-    window.FB.api('/me', { fields: 'id,name,picture.type(large)' }, (data) => {
-      if (data?.id && data?.name) resolve(data)
-      else reject(new Error('facebook'))
-    })
-  })
-  return cookFrom(
-    { id: profile.id, name: profile.name, picture: profile.picture?.data?.url || '' },
-    'facebook',
-  )
 }
 
 export function localCook(name, provider) {

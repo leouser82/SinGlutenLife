@@ -40,13 +40,11 @@ function emptyIng() {
 export default function SubirReceta() {
   const { t } = useI18n()
   const navigate = useNavigate()
-  const { user, loginGoogle, loginFacebook, signLocal, logout } = useAuth()
+  const { user, loginGoogle, loginFacebook, logout } = useAuth()
   const { publish } = useCommunity()
   const [step, setStep] = useState(0)
   const [busy, setBusy] = useState('')
   const [error, setError] = useState('')
-  const [localName, setLocalName] = useState('')
-  const [pendingProvider, setPendingProvider] = useState('')
   const [title, setTitle] = useState('')
   const [summary, setSummary] = useState('')
   const [minutes, setMinutes] = useState(30)
@@ -69,22 +67,14 @@ export default function SubirReceta() {
     try {
       const cook = provider === 'facebook' ? await loginFacebook() : await loginGoogle()
       if (!cook) {
-        setPendingProvider(provider)
+        setError(t('cook.authError'))
         return
       }
     } catch {
       setError(t('cook.authError'))
-      setPendingProvider(provider)
     } finally {
       setBusy('')
     }
-  }
-
-  function confirmLocal(event) {
-    event.preventDefault()
-    const cook = signLocal(localName, pendingProvider || 'google')
-    if (!cook) return
-    setPendingProvider('')
   }
 
   async function onPhoto(file) {
@@ -157,20 +147,11 @@ export default function SubirReceta() {
             <FacebookMark />
             {t('cook.facebook')}
           </button>
-          {pendingProvider ? (
-            <form className="cook-local" onSubmit={confirmLocal}>
-              <p>{t('cook.localNote')}</p>
-              <label>
-                {t('cook.signAs')}
-                <input value={localName} onChange={(event) => setLocalName(event.target.value)} required maxLength={60} />
-              </label>
-              <button className="btn btn-light" type="submit">
-                {t('cook.continue')}
-              </button>
-            </form>
-          ) : null}
           {error ? <p className="cook-error">{error}</p> : null}
-          <p className="cook-foot">{t('cook.gateNote')}</p>
+          <p className="cook-foot">
+            {t('cook.gateNote')}{' '}
+            <a href={`${import.meta.env.BASE_URL}privacidad.html`}>{t('cook.privacy')}</a>
+          </p>
         </section>
       </main>
     )

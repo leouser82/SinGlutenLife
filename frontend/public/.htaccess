@@ -1,6 +1,8 @@
 RewriteEngine On
 RewriteBase /
 
+RewriteRule ^privacidad/?$ /privacidad.html [L]
+
 RewriteRule ^api/place-photo$ /place-info.php [L,QSA]
 RewriteRule ^api/place-info$ /place-info.php [L,QSA]
 RewriteRule ^api/place-reviews$ /place-reviews.php [L,QSA]

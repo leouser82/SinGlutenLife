@@ -168,15 +168,30 @@ export default function SubirReceta() {
         {step === 0 ? (
           <div className="cook-pane">
             <h2>{t('cook.stepPlate')}</h2>
-            <label className={`cook-polaroid ${image ? 'has' : ''}`}>
-              {image ? <img src={image} alt="" /> : <span>{t('cook.drop')}</span>}
-              <input
-                type="file"
-                accept="image/*"
-                hidden
-                onChange={(event) => onPhoto(event.target.files?.[0])}
-              />
-            </label>
+            <div className="cook-photo-wrap">
+              <label className={`cook-polaroid ${image ? 'has' : ''}`}>
+                {image ? <img src={image} alt="" /> : <span>{t('cook.drop')}</span>}
+                <input
+                  type="file"
+                  accept="image/*"
+                  hidden
+                  onChange={(event) => {
+                    onPhoto(event.target.files?.[0])
+                    event.target.value = ''
+                  }}
+                />
+              </label>
+              {image ? (
+                <button
+                  type="button"
+                  className="cook-photo-clear"
+                  onClick={() => setImage('')}
+                  aria-label={t('cook.removePhoto')}
+                >
+                  ×
+                </button>
+              ) : null}
+            </div>
             <p className="note">{t('cook.photoHint')}</p>
             <label>
               {t('cook.title')}

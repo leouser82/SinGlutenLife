@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react'
-import { useSearchParams } from 'react-router-dom'
+import { useNavigate, useSearchParams } from 'react-router-dom'
 import { useAuth } from '../auth/AuthContext.jsx'
 import CookBy from '../components/CookBy.jsx'
 import ChipRow from '../components/ChipRow.jsx'
@@ -49,6 +49,7 @@ export default function SubirReceta() {
   const { t } = useI18n()
   const { user, loginGoogle, logout } = useAuth()
   const { community, publish, remove } = useCommunity()
+  const navigate = useNavigate()
   const [params, setParams] = useSearchParams()
   const [view, setView] = useState('list')
   const [form, setForm] = useState(blankForm)
@@ -237,9 +238,14 @@ export default function SubirReceta() {
           <div className="cook-pane cook-mine">
             <div className="cook-mine-head">
               <h2>{t('cook.mine')}</h2>
-              <button type="button" className="btn btn-light" onClick={openNew}>
-                {t('cook.new')}
-              </button>
+              <div className="cook-mine-head-actions">
+                <button type="button" className="btn btn-light" onClick={openNew}>
+                  {t('cook.new')}
+                </button>
+                <button type="button" className="btn btn-light" onClick={() => navigate('/recetas')}>
+                  {t('cook.next')}
+                </button>
+              </div>
             </div>
             {mine.length === 0 ? <p className="note">{t('cook.emptyMine')}</p> : null}
             {mine.map((recipe) => (

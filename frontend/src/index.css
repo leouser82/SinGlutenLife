@@ -1863,6 +1863,18 @@ input[type='range'] {
   margin: 0;
 }
 
+.cook-mine-head-actions {
+  display: flex;
+  flex-wrap: nowrap;
+  align-items: center;
+  gap: 8px;
+}
+
+.cook-mine-head-actions .btn {
+  flex: none;
+  white-space: nowrap;
+}
+
 .cook-mine-card {
   display: grid;
   grid-template-columns: 72px 1fr;

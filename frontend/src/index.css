@@ -62,6 +62,7 @@ a {
   display: flex;
   align-items: center;
   justify-content: space-between;
+  gap: 10px;
   padding: 18px 20px 10px;
 }
 
@@ -69,6 +70,12 @@ a {
   display: flex;
   align-items: center;
   gap: 10px;
+  min-width: 0;
+  flex: 1;
+}
+
+.brand > div {
+  min-width: 0;
 }
 
 .brand-mark {
@@ -87,12 +94,18 @@ a {
   font-size: 1.18rem;
   margin: 0;
   letter-spacing: -0.03em;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .brand p {
   margin: 0;
   font-size: 0.76rem;
   color: var(--muted);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .chip-location {
@@ -105,7 +118,8 @@ a {
   display: flex;
   gap: 6px;
   align-items: center;
-  max-width: 32%;
+  max-width: 118px;
+  min-width: 0;
   cursor: pointer;
   text-align: left;
   appearance: none;
@@ -126,34 +140,67 @@ a {
 }
 
 .lang-switch {
-  display: flex;
-  align-items: center;
-  gap: 5px;
-  padding: 3px 4px;
+  position: relative;
+  flex: none;
 }
 
-.lang-switch button {
-  width: 26px;
-  height: 26px;
+.lang-switch-toggle {
+  width: 32px;
+  height: 32px;
   padding: 0;
   border: 1.5px solid var(--line);
   border-radius: 50%;
   overflow: hidden;
   background: #fff;
   cursor: pointer;
-  opacity: 0.72;
-  transition: opacity 0.15s ease, border-color 0.15s ease, transform 0.15s ease, box-shadow 0.15s ease;
 }
 
-.lang-switch button:hover {
-  opacity: 1;
-}
-
-.lang-switch button.active {
-  opacity: 1;
+.lang-switch.open .lang-switch-toggle {
   border-color: #0b6ea8;
   box-shadow: 0 0 0 2px rgba(11, 110, 168, 0.22);
-  transform: scale(1.08);
+}
+
+.lang-menu {
+  position: absolute;
+  top: calc(100% + 8px);
+  left: 0;
+  right: auto;
+  z-index: 40;
+  min-width: 168px;
+  padding: 6px;
+  background: #fff;
+  border: 1px solid var(--line);
+  border-radius: 16px;
+  box-shadow: var(--shadow);
+}
+
+.lang-menu button {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 10px;
+  border: 0;
+  border-radius: 12px;
+  background: transparent;
+  color: var(--ink);
+  font: inherit;
+  font-size: 0.86rem;
+  cursor: pointer;
+  text-align: left;
+}
+
+.lang-menu button:hover,
+.lang-menu button.active {
+  background: var(--ice);
+}
+
+.lang-menu .lang-flag {
+  width: 22px;
+  height: 15px;
+  border-radius: 3px;
+  flex: none;
+  box-shadow: 0 0 0 1px var(--line);
 }
 
 .lang-flag {
@@ -1197,7 +1244,31 @@ input[type='range'] {
   font-weight: 700;
 }
 
+@media (max-width: 859px) {
+  .topbar {
+    flex-wrap: wrap;
+    align-items: center;
+  }
+
+  .brand {
+    flex: 1 1 100%;
+  }
+
+  .topbar-tools {
+    width: 100%;
+    justify-content: flex-end;
+  }
+
+  .chip-location {
+    max-width: 42vw;
+  }
+}
+
 @media (min-width: 860px) {
+  .chip-location {
+    max-width: 180px;
+  }
+
   .app-shell {
     max-width: 1080px;
     display: grid;

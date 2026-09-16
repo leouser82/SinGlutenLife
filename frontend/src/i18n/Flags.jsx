@@ -1,3 +1,5 @@
+import { useId } from 'react'
+
 const SIZE = { width: 36, height: 24 }
 
 function Frame({ children }) {
@@ -26,14 +28,15 @@ function Argentina() {
 }
 
 function UnitedKingdom() {
+  const clip = `flag-uk-${useId().replace(/:/g, '')}`
   return (
     <Frame>
       <defs>
-        <clipPath id="flag-uk">
+        <clipPath id={clip}>
           <rect width="36" height="24" />
         </clipPath>
       </defs>
-      <g clipPath="url(#flag-uk)">
+      <g clipPath={`url(#${clip})`}>
         <rect width="36" height="24" fill="#012169" />
         <path d="M0 0 L36 24 M36 0 L0 24" stroke="#fff" strokeWidth="5.5" />
         <path d="M0 0 L36 24" stroke="#c8102e" strokeWidth="2.4" />

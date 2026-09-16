@@ -6,6 +6,8 @@ export default function CookBy({ recipe }) {
     return t('recipes.source', { name: recipe.sourceName })
   }
   const picture = recipe.author?.picture
+  const name = recipe.sourceName || recipe.author?.name || ''
+  const initial = name.trim().charAt(0).toUpperCase() || '?'
   return (
     <span className="cook-by">
       {picture ? (
@@ -17,8 +19,13 @@ export default function CookBy({ recipe }) {
             event.currentTarget.hidden = true
           }}
         />
-      ) : null}
-      {t('cook.byCook')} {recipe.sourceName}
+      ) : (
+        <span className="cook-by-fallback">{initial}</span>
+      )}
+      <span className="cook-by-text">
+        <em>{t('cook.byCook')}</em>
+        <strong>{name}</strong>
+      </span>
     </span>
   )
 }

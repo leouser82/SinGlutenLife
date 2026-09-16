@@ -1,12 +1,13 @@
-import { useMemo, useState } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { useEffect, useMemo, useState } from 'react'
+import { useSearchParams } from 'react-router-dom'
 import { useAuth } from '../auth/AuthContext.jsx'
+import CookBy from '../components/CookBy.jsx'
+import ChipRow from '../components/ChipRow.jsx'
 import { resizePhoto } from '../community/store.js'
 import { useCommunity } from '../community/CommunityContext.jsx'
 import { recipeTags } from '../data/recipes.js'
 import { useI18n } from '../i18n/LanguageContext.jsx'
 import { labelOf } from '../i18n/labels.js'
-import ChipRow from '../components/ChipRow.jsx'
 
 function GoogleMark() {
   return (
@@ -26,24 +27,40 @@ function emptyIng() {
   return { name: '', qty: '', shop: 'almacen' }
 }
 
+function blankForm() {
+  return {
+    step: 0,
+    title: '',
+    summary: '',
+    minutes: 30,
+    servings: 2,
+    difficulty: 'Fácil',
+    tags: ['Almuerzo'],
+    image: '',
+    ingredients: [emptyIng()],
+    steps: [''],
+    seal: false,
+    editingId: '',
+    createdAt: 0,
+  }
+}
+
 export default function SubirReceta() {
   const { t } = useI18n()
-  const navigate = useNavigate()
   const { user, loginGoogle, logout } = useAuth()
-  const { publish } = useCommunity()
-  const [step, setStep] = useState(0)
+  const { community, publish, remove } = useCommunity()
+  const [params, setParams] = useSearchParams()
+  const [view, setView] = useState('list')
+  const [form, setForm] = useState(blankForm)
   const [busy, setBusy] = useState('')
   const [error, setError] = useState('')
-  const [title, setTitle] = useState('')
-  const [summary, setSummary] = useState('')
-  const [minutes, setMinutes] = useState(30)
-  const [servings, setServings] = useState(2)
-  const [difficulty, setDifficulty] = useState('Fácil')
-  const [tags, setTags] = useState(['Almuerzo'])
-  const [image, setImage] = useState('')
-  const [ingredients, setIngredients] = useState([emptyIng()])
-  const [steps, setSteps] = useState([''])
-  const [seal, setSeal] = useState(false)
+  const [pendingDelete, setPendingDelete] = useState('')
+  const { step, title, summary, minutes, servings, difficulty, tags, image, ingredients, steps, seal, editingId } = form
+
+  const mine = useMemo(
+    () => community.filter((recipe) => recipe.author?.id && recipe.author.id === user?.id),
+    [community, user?.id],
+  )
 
   const labels = useMemo(
     () => [t('cook.stepPlate'), t('cook.stepList'), t('cook.stepFire'), t('cook.stepServe')],
@@ -66,19 +83,65 @@ export default function SubirReceta() {
     }
   }
 
+  function patch(partial) {
+    setForm((current) => ({ ...current, ...partial }))
+  }
+
   async function onPhoto(file) {
     if (!file) return
     try {
-      setImage(await resizePhoto(file))
+      patch({ image: await resizePhoto(file) })
     } catch {
-      setImage('')
+      patch({ image: '' })
     }
   }
 
+  function openNew() {
+    setError('')
+    setForm(blankForm())
+    setView('form')
+  }
+
+  useEffect(() => {
+    const id = params.get('editar')
+    if (!id || !user) return
+    const recipe = community.find((item) => item.id === id && item.author?.id === user.id)
+    if (!recipe) return
+    openEdit(recipe)
+    setParams({}, { replace: true })
+  }, [params, community, user, setParams])
+
+  function openEdit(recipe) {
+    setError('')
+    setPendingDelete('')
+    setForm({
+      step: 0,
+      title: recipe.title || '',
+      summary: recipe.summary || '',
+      minutes: recipe.minutes || 30,
+      servings: recipe.servings || 2,
+      difficulty: recipe.difficulty === 'Media' ? 'Media' : 'Fácil',
+      tags: recipe.tags?.length ? recipe.tags : ['Almuerzo'],
+      image: recipe.image || '',
+      ingredients: recipe.ingredients?.length ? recipe.ingredients : [emptyIng()],
+      steps: recipe.steps?.length ? recipe.steps : [''],
+      seal: true,
+      editingId: recipe.id,
+      createdAt: recipe.createdAt || 0,
+    })
+    setView('form')
+  }
+
+  function backToList() {
+    setError('')
+    setForm(blankForm())
+    setView('list')
+  }
+
   function toggleTag(tag) {
-    setTags((current) =>
-      current.includes(tag) ? current.filter((item) => item !== tag) : [...current, tag].slice(0, 4),
-    )
+    patch({
+      tags: tags.includes(tag) ? tags.filter((item) => item !== tag) : [...tags, tag].slice(0, 4),
+    })
   }
 
   function canNext() {
@@ -97,6 +160,8 @@ export default function SubirReceta() {
     if (!seal) return setError(t('cook.needSeal'))
     setBusy('publish')
     const recipe = {
+      id: editingId || undefined,
+      createdAt: form.createdAt || undefined,
       title: title.trim(),
       summary: summary.trim(),
       minutes,
@@ -112,7 +177,23 @@ export default function SubirReceta() {
     try {
       const saved = await publish(recipe)
       if (!saved?.id) throw new Error('publish')
-      navigate(`/recetas/${saved.id}`)
+      backToList()
+    } catch {
+      setError(t('cook.authError'))
+    } finally {
+      setBusy('')
+    }
+  }
+
+  async function onDelete(recipe) {
+    if (pendingDelete !== recipe.id) {
+      setPendingDelete(recipe.id)
+      return
+    }
+    setBusy(`del-${recipe.id}`)
+    try {
+      await remove(recipe, user)
+      setPendingDelete('')
     } catch {
       setError(t('cook.authError'))
     } finally {
@@ -151,200 +232,233 @@ export default function SubirReceta() {
             {t('cook.logout')}
           </button>
         </div>
-        <div className="cook-progress" aria-hidden="true">
-          {labels.map((label, index) => (
-            <button
-              key={label}
-              type="button"
-              className={index === step ? 'on' : index < step ? 'done' : ''}
-              onClick={() => index <= step && setStep(index)}
-            >
-              <span />
-              {label}
-            </button>
-          ))}
-        </div>
 
-        {step === 0 ? (
-          <div className="cook-pane">
-            <h2>{t('cook.stepPlate')}</h2>
-            <div className="cook-photo-wrap">
-              <label className={`cook-polaroid ${image ? 'has' : ''}`}>
-                {image ? <img src={image} alt="" /> : <span>{t('cook.drop')}</span>}
-                <input
-                  type="file"
-                  accept="image/*"
-                  hidden
-                  onChange={(event) => {
-                    onPhoto(event.target.files?.[0])
-                    event.target.value = ''
-                  }}
-                />
-              </label>
-              {image ? (
-                <button
-                  type="button"
-                  className="cook-photo-clear"
-                  onClick={() => setImage('')}
-                  aria-label={t('cook.removePhoto')}
-                >
-                  ×
-                </button>
-              ) : null}
+        {view === 'list' ? (
+          <div className="cook-pane cook-mine">
+            <div className="cook-mine-head">
+              <h2>{t('cook.mine')}</h2>
+              <button type="button" className="btn btn-light" onClick={openNew}>
+                {t('cook.new')}
+              </button>
             </div>
-            <p className="note">{t('cook.photoHint')}</p>
-            <label>
-              {t('cook.title')}
-              <input value={title} onChange={(event) => setTitle(event.target.value)} maxLength={80} />
-            </label>
-            <label>
-              {t('cook.story')}
-              <textarea value={summary} onChange={(event) => setSummary(event.target.value)} maxLength={220} rows={3} />
-            </label>
-            <div className="cook-row">
-              <label>
-                {t('cook.minutes')}
-                <input type="number" min="5" max="240" value={minutes} onChange={(event) => setMinutes(Number(event.target.value))} />
-              </label>
-              <label>
-                {t('cook.servings')}
-                <input type="number" min="1" max="12" value={servings} onChange={(event) => setServings(Number(event.target.value))} />
-              </label>
-              <label>
-                {t('cook.difficulty')}
-                <select value={difficulty} onChange={(event) => setDifficulty(event.target.value)}>
-                  <option value="Fácil">{labelOf(t, 'diff', 'Fácil')}</option>
-                  <option value="Media">{labelOf(t, 'diff', 'Media')}</option>
-                </select>
-              </label>
-            </div>
-            <ChipRow>
-              {TAGS.map((tag) => (
+            {mine.length === 0 ? <p className="note">{t('cook.emptyMine')}</p> : null}
+            {mine.map((recipe) => (
+              <article className="cook-mine-card" key={recipe.id}>
+                {recipe.image ? <img src={recipe.image} alt="" /> : <div className="cook-mine-gap" />}
+                <div>
+                  <h3>{recipe.title}</h3>
+                  <CookBy recipe={recipe} />
+                  <div className="cook-mine-actions">
+                    <button type="button" className="text-btn" onClick={() => openEdit(recipe)}>
+                      {t('cook.edit')}
+                    </button>
+                    <button
+                      type="button"
+                      className="text-btn cook-mine-del"
+                      disabled={busy === `del-${recipe.id}`}
+                      onClick={() => onDelete(recipe)}
+                    >
+                      {pendingDelete === recipe.id ? t('cook.deleteAsk') : t('cook.delete')}
+                    </button>
+                  </div>
+                </div>
+              </article>
+            ))}
+            {error ? <p className="cook-error">{error}</p> : null}
+          </div>
+        ) : (
+          <>
+            <div className="cook-progress" aria-hidden="true">
+              {labels.map((label, index) => (
                 <button
-                  key={tag}
+                  key={label}
                   type="button"
-                  className={tags.includes(tag) ? 'filter active' : 'filter'}
-                  onClick={() => toggleTag(tag)}
+                  className={index === step ? 'on' : index < step ? 'done' : ''}
+                  onClick={() => index <= step && patch({ step: index })}
                 >
-                  {labelOf(t, 'tag', tag)}
+                  <span />
+                  {label}
                 </button>
               ))}
-            </ChipRow>
-          </div>
-        ) : null}
+            </div>
 
-        {step === 1 ? (
-          <div className="cook-pane">
-            <h2>{t('cook.stepList')}</h2>
-            {ingredients.map((item, index) => (
-              <div className="cook-ing" key={`ing-${index}`}>
-                <input
-                  placeholder={t('cook.ingName')}
-                  value={item.name}
-                  onChange={(event) => {
-                    const next = [...ingredients]
-                    next[index] = { ...item, name: event.target.value }
-                    setIngredients(next)
-                  }}
-                />
-                <input
-                  placeholder={t('cook.ingQty')}
-                  value={item.qty}
-                  onChange={(event) => {
-                    const next = [...ingredients]
-                    next[index] = { ...item, qty: event.target.value }
-                    setIngredients(next)
-                  }}
-                />
-                <select
-                  value={item.shop}
-                  onChange={(event) => {
-                    const next = [...ingredients]
-                    next[index] = { ...item, shop: event.target.value }
-                    setIngredients(next)
-                  }}
-                >
-                  {SHOPS.map((shop) => (
-                    <option key={shop} value={shop}>
-                      {labelOf(t, 'shop', shop)}
-                    </option>
-                  ))}
-                </select>
-              </div>
-            ))}
-            <button type="button" className="text-btn" onClick={() => setIngredients((list) => [...list, emptyIng()])}>
-              {t('cook.addIng')}
-            </button>
-          </div>
-        ) : null}
-
-        {step === 2 ? (
-          <div className="cook-pane">
-            <h2>{t('cook.stepFire')}</h2>
-            {steps.map((item, index) => (
-              <label key={`step-${index}`}>
-                {t('cook.stepN', { n: index + 1 })}
-                <textarea
-                  rows={2}
-                  value={item}
-                  onChange={(event) => {
-                    const next = [...steps]
-                    next[index] = event.target.value
-                    setSteps(next)
-                  }}
-                />
-              </label>
-            ))}
-            <button type="button" className="text-btn" onClick={() => setSteps((list) => [...list, ''])}>
-              {t('cook.addStep')}
-            </button>
-          </div>
-        ) : null}
-
-        {step === 3 ? (
-          <div className="cook-pane">
-            <h2>{t('cook.stepServe')}</h2>
-            <article className="cook-preview">
-              {image ? <img src={image} alt="" /> : null}
-              <p className="cook-kicker">{t('cook.community')}</p>
-              <h3>{title}</h3>
-              <p>{summary}</p>
-              <p className="meta">
-                <span className="cook-by">
-                  {user.picture ? (
-                    <img src={user.picture} alt="" referrerPolicy="no-referrer" />
+            {step === 0 ? (
+              <div className="cook-pane">
+                <h2>{t('cook.stepPlate')}</h2>
+                <div className="cook-photo-wrap">
+                  <label className={`cook-polaroid ${image ? 'has' : ''}`}>
+                    {image ? <img src={image} alt="" /> : <span>{t('cook.drop')}</span>}
+                    <input
+                      type="file"
+                      accept="image/*"
+                      hidden
+                      onChange={(event) => {
+                        onPhoto(event.target.files?.[0])
+                        event.target.value = ''
+                      }}
+                    />
+                  </label>
+                  {image ? (
+                    <button
+                      type="button"
+                      className="cook-photo-clear"
+                      onClick={() => patch({ image: '' })}
+                      aria-label={t('cook.removePhoto')}
+                    >
+                      ×
+                    </button>
                   ) : null}
-                  {t('cook.byCook')} {user.name}
-                </span>
-              </p>
-            </article>
-            <label className="cook-seal">
-              <input type="checkbox" checked={seal} onChange={(event) => setSeal(event.target.checked)} />
-              {t('cook.seal')}
-            </label>
-            <p className="note">{t('cook.hint')}</p>
-          </div>
-        ) : null}
+                </div>
+                <p className="note">{t('cook.photoHint')}</p>
+                <label>
+                  {t('cook.title')}
+                  <input value={title} onChange={(event) => patch({ title: event.target.value })} maxLength={80} />
+                </label>
+                <label>
+                  {t('cook.story')}
+                  <textarea value={summary} onChange={(event) => patch({ summary: event.target.value })} maxLength={220} rows={3} />
+                </label>
+                <div className="cook-row">
+                  <label>
+                    {t('cook.minutes')}
+                    <input type="number" min="5" max="240" value={minutes} onChange={(event) => patch({ minutes: Number(event.target.value) })} />
+                  </label>
+                  <label>
+                    {t('cook.servings')}
+                    <input type="number" min="1" max="12" value={servings} onChange={(event) => patch({ servings: Number(event.target.value) })} />
+                  </label>
+                  <label>
+                    {t('cook.difficulty')}
+                    <select value={difficulty} onChange={(event) => patch({ difficulty: event.target.value })}>
+                      <option value="Fácil">{labelOf(t, 'diff', 'Fácil')}</option>
+                      <option value="Media">{labelOf(t, 'diff', 'Media')}</option>
+                    </select>
+                  </label>
+                </div>
+                <ChipRow>
+                  {TAGS.map((tag) => (
+                    <button
+                      key={tag}
+                      type="button"
+                      className={tags.includes(tag) ? 'filter active' : 'filter'}
+                      onClick={() => toggleTag(tag)}
+                    >
+                      {labelOf(t, 'tag', tag)}
+                    </button>
+                  ))}
+                </ChipRow>
+              </div>
+            ) : null}
 
-        {error ? <p className="cook-error">{error}</p> : null}
-        <div className="cook-actions">
-          {step > 0 ? (
-            <button type="button" className="btn btn-ghost" onClick={() => setStep((value) => value - 1)}>
-              {t('cook.back')}
-            </button>
-          ) : (
-            <span />
-          )}
-          {step < 3 ? (
-            <button type="button" className="btn btn-light" disabled={!canNext()} onClick={() => setStep((value) => value + 1)}>
-              {t('cook.next')}
-            </button>
-          ) : (
-            <button type="button" className="btn btn-light" disabled={!seal || busy === 'publish'} onClick={submit}>
-              {busy === 'publish' ? t('cook.publishing') : t('cook.publish')}
-            </button>
-          )}
-        </div>
+            {step === 1 ? (
+              <div className="cook-pane">
+                <h2>{t('cook.stepList')}</h2>
+                {ingredients.map((item, index) => (
+                  <div className="cook-ing" key={`ing-${index}`}>
+                    <input
+                      placeholder={t('cook.ingName')}
+                      value={item.name}
+                      onChange={(event) => {
+                        const next = [...ingredients]
+                        next[index] = { ...item, name: event.target.value }
+                        patch({ ingredients: next })
+                      }}
+                    />
+                    <input
+                      placeholder={t('cook.ingQty')}
+                      value={item.qty}
+                      onChange={(event) => {
+                        const next = [...ingredients]
+                        next[index] = { ...item, qty: event.target.value }
+                        patch({ ingredients: next })
+                      }}
+                    />
+                    <select
+                      value={item.shop}
+                      onChange={(event) => {
+                        const next = [...ingredients]
+                        next[index] = { ...item, shop: event.target.value }
+                        patch({ ingredients: next })
+                      }}
+                    >
+                      {SHOPS.map((shop) => (
+                        <option key={shop} value={shop}>
+                          {labelOf(t, 'shop', shop)}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                ))}
+                <button type="button" className="text-btn" onClick={() => patch({ ingredients: [...ingredients, emptyIng()] })}>
+                  {t('cook.addIng')}
+                </button>
+              </div>
+            ) : null}
+
+            {step === 2 ? (
+              <div className="cook-pane">
+                <h2>{t('cook.stepFire')}</h2>
+                {steps.map((item, index) => (
+                  <label key={`step-${index}`}>
+                    {t('cook.stepN', { n: index + 1 })}
+                    <textarea
+                      rows={2}
+                      value={item}
+                      onChange={(event) => {
+                        const next = [...steps]
+                        next[index] = event.target.value
+                        patch({ steps: next })
+                      }}
+                    />
+                  </label>
+                ))}
+                <button type="button" className="text-btn" onClick={() => patch({ steps: [...steps, ''] })}>
+                  {t('cook.addStep')}
+                </button>
+              </div>
+            ) : null}
+
+            {step === 3 ? (
+              <div className="cook-pane">
+                <h2>{t('cook.stepServe')}</h2>
+                <article className="cook-preview">
+                  {image ? <img className="cook-preview-dish" src={image} alt="" /> : null}
+                  <p className="cook-kicker">{t('cook.community')}</p>
+                  <h3>{title}</h3>
+                  {summary ? <p className="cook-preview-story">{summary}</p> : null}
+                  <CookBy recipe={{ community: true, sourceName: user.name, author: user }} />
+                </article>
+                <label className="cook-seal">
+                  <input type="checkbox" checked={seal} onChange={(event) => patch({ seal: event.target.checked })} />
+                  {t('cook.seal')}
+                </label>
+                <p className="note">{t('cook.hint')}</p>
+              </div>
+            ) : null}
+
+            {error ? <p className="cook-error">{error}</p> : null}
+            <div className="cook-actions">
+              {step > 0 ? (
+                <button type="button" className="btn btn-ghost" onClick={() => patch({ step: step - 1 })}>
+                  {t('cook.back')}
+                </button>
+              ) : (
+                <button type="button" className="btn btn-ghost" onClick={backToList}>
+                  {t('cook.cancel')}
+                </button>
+              )}
+              {step < 3 ? (
+                <button type="button" className="btn btn-light" disabled={!canNext()} onClick={() => patch({ step: step + 1 })}>
+                  {t('cook.next')}
+                </button>
+              ) : (
+                <button type="button" className="btn btn-light" disabled={!seal || busy === 'publish'} onClick={submit}>
+                  {busy === 'publish' ? t('cook.publishing') : editingId ? t('cook.save') : t('cook.publish')}
+                </button>
+              )}
+            </div>
+          </>
+        )}
       </section>
     </main>
   )

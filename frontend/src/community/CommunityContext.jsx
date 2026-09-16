@@ -1,11 +1,12 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react'
 import { recipes as editorial } from '../data/recipes.js'
-import { fetchCommunityRecipes, publishCommunityRecipe } from './store.js'
+import { fetchCommunityRecipes, publishCommunityRecipe, deleteCommunityRecipe } from './store.js'
 
 const CommunityContext = createContext({
   community: [],
   allRecipes: editorial,
   publish: async () => null,
+  remove: async () => false,
 })
 
 export function CommunityProvider({ children }) {
@@ -30,9 +31,19 @@ export function CommunityProvider({ children }) {
     return saved
   }, [])
 
+  const remove = useCallback(async (recipe, author) => {
+    if (!recipe?.id) return false
+    await deleteCommunityRecipe(recipe.id, author)
+    setCommunity((current) => current.filter((item) => item.id !== recipe.id))
+    return true
+  }, [])
+
   const allRecipes = useMemo(() => [...community, ...editorial], [community])
 
-  const value = useMemo(() => ({ community, allRecipes, publish, refresh }), [community, allRecipes, publish, refresh])
+  const value = useMemo(
+    () => ({ community, allRecipes, publish, remove, refresh }),
+    [community, allRecipes, publish, remove, refresh],
+  )
 
   return <CommunityContext.Provider value={value}>{children}</CommunityContext.Provider>
 }

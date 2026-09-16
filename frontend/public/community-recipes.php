@@ -38,6 +38,34 @@ if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
 }
 
 $input = json_decode(file_get_contents('php://input'), true) ?: [];
+$authorId = clean_text($input['author']['id'] ?? '', 80);
+
+if (($input['action'] ?? '') === 'delete') {
+  $incoming = (string) ($input['id'] ?? '');
+  if (!preg_match('/^c-[a-z0-9]+$/i', $incoming) || $authorId === '') {
+    http_response_code(400);
+    echo json_encode(['ok' => false, 'error' => 'invalid']);
+    exit;
+  }
+  $kept = [];
+  $removed = false;
+  foreach (recipes_read($file) as $item) {
+    if (($item['id'] ?? '') === $incoming) {
+      if (($item['author']['id'] ?? '') !== $authorId) {
+        http_response_code(403);
+        echo json_encode(['ok' => false, 'error' => 'forbidden']);
+        exit;
+      }
+      $removed = true;
+      continue;
+    }
+    $kept[] = $item;
+  }
+  recipes_write($dir, $file, $kept);
+  echo json_encode(['ok' => true, 'deleted' => $incoming, 'found' => $removed], JSON_UNESCAPED_UNICODE);
+  exit;
+}
+
 $title = clean_text($input['title'] ?? '', 80);
 $authorName = clean_text($input['author']['name'] ?? '', 60);
 $image = (string) ($input['image'] ?? '');
@@ -87,6 +115,20 @@ $id = preg_match('/^c-[a-z0-9]+$/i', $incoming)
   ? $incoming
   : ('c-' . base_convert((string) (int) (microtime(true) * 1000), 10, 36));
 
+$all = recipes_read($file);
+$prev = null;
+foreach ($all as $item) {
+  if (($item['id'] ?? '') === $id) {
+    $prev = $item;
+    break;
+  }
+}
+if ($prev && $authorId !== '' && ($prev['author']['id'] ?? '') !== $authorId) {
+  http_response_code(403);
+  echo json_encode(['ok' => false, 'error' => 'forbidden']);
+  exit;
+}
+
 $recipe = [
   'id' => $id,
   'community' => true,
@@ -107,10 +149,10 @@ $recipe = [
     'picture' => clean_picture($input['author']['picture'] ?? ''),
     'provider' => (($input['author']['provider'] ?? '') === 'facebook') ? 'facebook' : 'google',
   ],
-  'createdAt' => (int) round(microtime(true) * 1000),
+  'createdAt' => (int) ($prev['createdAt'] ?? ((int) ($input['createdAt'] ?? 0) ?: (int) round(microtime(true) * 1000))),
 ];
 
-$existing = array_values(array_filter(recipes_read($file), function ($item) use ($id) {
+$existing = array_values(array_filter($all, function ($item) use ($id) {
   return ($item['id'] ?? '') !== $id;
 }));
 $recipes = array_slice(array_merge([$recipe], $existing), 0, 80);

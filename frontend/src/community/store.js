@@ -92,6 +92,26 @@ export async function publishCommunityRecipe(recipe) {
   return ready
 }
 
+export async function deleteCommunityRecipe(id, author) {
+  const local = readLocal().filter((item) => item.id !== id)
+  writeLocal(local)
+  for (const url of communityUrls()) {
+    try {
+      const response = await fetch(url, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'delete', id, author }),
+      })
+      if (!response.ok) continue
+      const data = await readJson(response)
+      if (data?.ok) return true
+    } catch {
+      // next
+    }
+  }
+  return true
+}
+
 export function resizePhoto(file) {
   return new Promise((resolve, reject) => {
     if (!file || !file.type.startsWith('image/')) {

@@ -1,4 +1,5 @@
 import { Link } from 'react-router-dom'
+import CookBy from './CookBy.jsx'
 import RecipePhoto from './RecipePhoto.jsx'
 import { useI18n } from '../i18n/LanguageContext.jsx'
 import { labelOf } from '../i18n/labels.js'
@@ -29,7 +30,7 @@ export default function RecipeCard({ recipe }) {
           <span>{labelOf(t, 'diff', recipe.difficulty)}</span>
         </div>
         <p className="meta" style={{ marginTop: 8 }}>
-          {recipe.community ? `${t('cook.byCook')} ${recipe.sourceName}` : t('recipes.source', { name: recipe.sourceName })}
+          <CookBy recipe={recipe} />
         </p>
       </Link>
     </article>

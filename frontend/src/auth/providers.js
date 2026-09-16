@@ -66,7 +66,8 @@ export async function loginWithGoogle() {
   })
   const data = await response.json()
   if (!data?.sub || !data?.name) throw new Error('google')
-  return cookFrom({ id: data.sub, name: data.name, picture: data.picture || '' }, 'google')
+  const picture = String(data.picture || '').replace(/=s\d+-c\b/, '=s128-c')
+  return cookFrom({ id: data.sub, name: data.name, picture }, 'google')
 }
 
 export function localCook(name, provider) {

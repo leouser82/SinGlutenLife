@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import { Link, useNavigate, useParams } from 'react-router-dom'
+import CookBy from '../components/CookBy.jsx'
 import RecipePhoto from '../components/RecipePhoto.jsx'
 import { formatDistance } from '../geo/geo.js'
 import { loadGroceryShops, mapsShopUrl, shopForIngredient } from '../geo/ingredientShops.js'
@@ -67,14 +68,20 @@ export default function RecetaDetalle() {
         <span>{t('home.servings', { n: recipe.servings })}</span>
         <span>{labelOf(t, 'diff', recipe.difficulty)}</span>
       </div>
-      <p className="note">
-        {recipe.community ? t('cook.byCook') : t('recipe.by')}{' '}
-        {recipe.sourceUrl ? (
-          <a className="maps-link" href={recipe.sourceUrl} target="_blank" rel="noreferrer">
-            {recipe.sourceName}
-          </a>
+      <p className="note cook-by-line">
+        {recipe.community ? (
+          <CookBy recipe={recipe} />
         ) : (
-          <strong>{recipe.sourceName}</strong>
+          <>
+            {t('recipe.by')}{' '}
+            {recipe.sourceUrl ? (
+              <a className="maps-link" href={recipe.sourceUrl} target="_blank" rel="noreferrer">
+                {recipe.sourceName}
+              </a>
+            ) : (
+              <strong>{recipe.sourceName}</strong>
+            )}
+          </>
         )}
       </p>
       {recipe.community ? <p className="banner-proto">{t('cook.hint')}</p> : null}

@@ -19,6 +19,12 @@ function writeAll(recipes) {
   fs.writeFileSync(file, JSON.stringify({ recipes }, null, 2))
 }
 
+function cleanPicture(value) {
+  const url = String(value || '').trim()
+  if (!url.startsWith('https://') || url.length > 2000) return ''
+  return url
+}
+
 function cleanText(value, max) {
   return String(value || '')
     .replace(/<[^>]*>/g, '')
@@ -70,7 +76,7 @@ function sanitize(input) {
     author: {
       id: cleanText(input.author?.id, 80),
       name: authorName,
-      picture: String(input.author?.picture || '').slice(0, 500),
+      picture: cleanPicture(input.author?.picture),
       provider: input.author?.provider === 'facebook' ? 'facebook' : 'google',
     },
     createdAt: Date.now(),

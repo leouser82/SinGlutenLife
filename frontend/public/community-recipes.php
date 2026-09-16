@@ -15,6 +15,12 @@ function recipes_write($dir, $file, $recipes) {
   file_put_contents($file, json_encode(['recipes' => $recipes], JSON_UNESCAPED_UNICODE | JSON_PRETTY_PRINT));
 }
 
+function clean_picture($value) {
+  $url = trim((string) $value);
+  if ($url === '' || stripos($url, 'https://') !== 0 || strlen($url) > 2000) return '';
+  return $url;
+}
+
 function clean_text($value, $max) {
   $text = trim(preg_replace('/\s+/', ' ', strip_tags((string) $value)));
   return mb_substr($text, 0, $max);
@@ -98,7 +104,7 @@ $recipe = [
   'author' => [
     'id' => clean_text($input['author']['id'] ?? '', 80),
     'name' => $authorName,
-    'picture' => substr((string) ($input['author']['picture'] ?? ''), 0, 500),
+    'picture' => clean_picture($input['author']['picture'] ?? ''),
     'provider' => (($input['author']['provider'] ?? '') === 'facebook') ? 'facebook' : 'google',
   ],
   'createdAt' => (int) round(microtime(true) * 1000),

@@ -1111,6 +1111,26 @@ input[type='range'] {
   margin: 0;
 }
 
+.cook-by {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.cook-by img {
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  object-fit: cover;
+  background: var(--ice);
+  flex: none;
+}
+
+.cook-by-line {
+  display: flex;
+  align-items: center;
+}
+
 .recipe-card .row-stats {
   color: var(--blue);
   font-weight: 600;

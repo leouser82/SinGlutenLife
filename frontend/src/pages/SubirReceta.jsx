@@ -295,7 +295,12 @@ export default function SubirReceta() {
               <h3>{title}</h3>
               <p>{summary}</p>
               <p className="meta">
-                {t('cook.byCook')} {user.name}
+                <span className="cook-by">
+                  {user.picture ? (
+                    <img src={user.picture} alt="" referrerPolicy="no-referrer" />
+                  ) : null}
+                  {t('cook.byCook')} {user.name}
+                </span>
               </p>
             </article>
             <label className="cook-seal">

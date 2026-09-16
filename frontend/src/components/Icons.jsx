@@ -31,13 +31,24 @@ export function IconPlus() {
 export function BrandMark() {
   return (
     <div className="brand-mark" aria-hidden>
-      <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
+      <svg width="22" height="22" viewBox="0 0 24 24" fill="none">
         <path
-          d="M6 12.4 10.1 16.6 18.4 8"
+          d="M12 20.2V7.2"
           stroke="#e8f6ff"
-          strokeWidth="2.4"
+          strokeWidth="1.7"
           strokeLinecap="round"
-          strokeLinejoin="round"
+        />
+        <path
+          d="M12 8.2c-1.7-.9-2.8-2.1-2.8-3.4M12 8.2c1.7-.9 2.8-2.1 2.8-3.4M12 11.2c-2-.7-3.3-1.8-3.3-3.1M12 11.2c2-.7 3.3-1.8 3.3-3.1M12 14.1c-2.1-.6-3.5-1.6-3.5-2.8M12 14.1c2.1-.6 3.5-1.6 3.5-2.8"
+          stroke="#e8f6ff"
+          strokeWidth="1.55"
+          strokeLinecap="round"
+        />
+        <path
+          d="M6.2 17.6 17.8 6.4"
+          stroke="#ffc4ae"
+          strokeWidth="2.3"
+          strokeLinecap="round"
         />
       </svg>
     </div>

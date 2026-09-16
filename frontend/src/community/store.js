@@ -62,6 +62,12 @@ export async function publishCommunityRecipe(recipe) {
     community: true,
     createdAt: recipe.createdAt || Date.now(),
     sourceName: recipe.sourceName || recipe.author?.name || '',
+    author: recipe.author
+      ? {
+          ...recipe.author,
+          picture: String(recipe.author.picture || '').startsWith('https://') ? recipe.author.picture : '',
+        }
+      : recipe.author,
   }
   const local = [ready, ...readLocal().filter((item) => item.id !== ready.id)]
   writeLocal(local)

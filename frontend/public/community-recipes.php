@@ -1,18 +1,30 @@
 <?php
 header('Content-Type: application/json; charset=utf-8');
 header('Cache-Control: no-store');
-$dir = __DIR__ . '/data';
-$file = $dir . '/community-recipes.json';
 
-function recipes_read($file) {
-  if (!is_file($file)) return [];
-  $data = json_decode(file_get_contents($file), true);
-  return is_array($data['recipes'] ?? null) ? $data['recipes'] : [];
+define('SGL_DB', true);
+$config = require __DIR__ . '/db-config.php';
+
+function db($config) {
+  static $pdo = null;
+  if ($pdo) return $pdo;
+  $dsn = sprintf(
+    'mysql:host=%s;port=%d;dbname=%s;charset=utf8mb4',
+    $config['host'],
+    $config['port'],
+    $config['name']
+  );
+  $pdo = new PDO($dsn, $config['user'], $config['pass'], [
+    PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION,
+    PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC,
+  ]);
+  return $pdo;
 }
 
-function recipes_write($dir, $file, $recipes) {
-  if (!is_dir($dir)) mkdir($dir, 0775, true);
-  file_put_contents($file, json_encode(['recipes' => $recipes], JSON_UNESCAPED_UNICODE | JSON_PRETTY_PRINT));
+function fail($code, $error) {
+  http_response_code($code);
+  echo json_encode(['ok' => false, 'error' => $error], JSON_UNESCAPED_UNICODE);
+  exit;
 }
 
 function clean_picture($value) {
@@ -26,15 +38,115 @@ function clean_text($value, $max) {
   return mb_substr($text, 0, $max);
 }
 
+function decode_list($value) {
+  $data = json_decode((string) $value, true);
+  return is_array($data) ? $data : [];
+}
+
+function row_to_recipe($row) {
+  return [
+    'id' => $row['id'],
+    'community' => true,
+    'title' => $row['title'],
+    'summary' => $row['summary'],
+    'minutes' => (int) $row['minutes'],
+    'servings' => (int) $row['servings'],
+    'difficulty' => $row['difficulty'],
+    'tags' => decode_list($row['tags']),
+    'ingredients' => decode_list($row['ingredients']),
+    'steps' => decode_list($row['steps']),
+    'image' => $row['image'],
+    'sourceName' => $row['source_name'],
+    'sourceUrl' => $row['source_url'],
+    'author' => [
+      'id' => $row['author_id'],
+      'name' => $row['author_name'],
+      'picture' => $row['author_picture'],
+      'provider' => $row['author_provider'],
+    ],
+    'createdAt' => (int) $row['created_at'],
+  ];
+}
+
+function recipes_read($pdo) {
+  $stmt = $pdo->query('SELECT * FROM community_recipes ORDER BY created_at DESC LIMIT 80');
+  $out = [];
+  foreach ($stmt as $row) $out[] = row_to_recipe($row);
+  return $out;
+}
+
+function recipes_find($pdo, $id) {
+  $stmt = $pdo->prepare('SELECT * FROM community_recipes WHERE id = ? LIMIT 1');
+  $stmt->execute([$id]);
+  $row = $stmt->fetch();
+  return $row ? row_to_recipe($row) : null;
+}
+
+function recipes_save($pdo, $recipe) {
+  $sql = 'INSERT INTO community_recipes (
+      id, title, summary, minutes, servings, difficulty, tags, ingredients, steps, image,
+      source_name, source_url, author_id, author_name, author_picture, author_provider, created_at
+    ) VALUES (
+      :id, :title, :summary, :minutes, :servings, :difficulty, :tags, :ingredients, :steps, :image,
+      :source_name, :source_url, :author_id, :author_name, :author_picture, :author_provider, :created_at
+    ) ON DUPLICATE KEY UPDATE
+      title = VALUES(title),
+      summary = VALUES(summary),
+      minutes = VALUES(minutes),
+      servings = VALUES(servings),
+      difficulty = VALUES(difficulty),
+      tags = VALUES(tags),
+      ingredients = VALUES(ingredients),
+      steps = VALUES(steps),
+      image = VALUES(image),
+      source_name = VALUES(source_name),
+      source_url = VALUES(source_url),
+      author_id = VALUES(author_id),
+      author_name = VALUES(author_name),
+      author_picture = VALUES(author_picture),
+      author_provider = VALUES(author_provider)';
+  $stmt = $pdo->prepare($sql);
+  $stmt->execute([
+    ':id' => $recipe['id'],
+    ':title' => $recipe['title'],
+    ':summary' => $recipe['summary'],
+    ':minutes' => $recipe['minutes'],
+    ':servings' => $recipe['servings'],
+    ':difficulty' => $recipe['difficulty'],
+    ':tags' => json_encode($recipe['tags'], JSON_UNESCAPED_UNICODE),
+    ':ingredients' => json_encode($recipe['ingredients'], JSON_UNESCAPED_UNICODE),
+    ':steps' => json_encode($recipe['steps'], JSON_UNESCAPED_UNICODE),
+    ':image' => $recipe['image'],
+    ':source_name' => $recipe['sourceName'],
+    ':source_url' => $recipe['sourceUrl'],
+    ':author_id' => $recipe['author']['id'],
+    ':author_name' => $recipe['author']['name'],
+    ':author_picture' => $recipe['author']['picture'],
+    ':author_provider' => $recipe['author']['provider'],
+    ':created_at' => $recipe['createdAt'],
+  ]);
+  $pdo->exec('DELETE FROM community_recipes WHERE id NOT IN (
+    SELECT id FROM (
+      SELECT id FROM community_recipes ORDER BY created_at DESC LIMIT 80
+    ) keep_ids
+  )');
+}
+
+try {
+  $pdo = db($config);
+} catch (PDOException $e) {
+  fail(500, 'db');
+}
+
+try {
+
 if ($_SERVER['REQUEST_METHOD'] === 'GET') {
-  echo json_encode(['recipes' => recipes_read($file)], JSON_UNESCAPED_UNICODE);
+  echo json_encode(['recipes' => recipes_read($pdo)], JSON_UNESCAPED_UNICODE);
   exit;
 }
 
 if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
-  http_response_code(405);
-  echo json_encode(['ok' => false]);
-  exit;
+  fail(405, 'method');
 }
 
 $input = json_decode(file_get_contents('php://input'), true) ?: [];
@@ -43,26 +155,15 @@ $authorId = clean_text($input['author']['id'] ?? '', 80);
 if (($input['action'] ?? '') === 'delete') {
   $incoming = (string) ($input['id'] ?? '');
   if (!preg_match('/^c-[a-z0-9]+$/i', $incoming) || $authorId === '') {
-    http_response_code(400);
-    echo json_encode(['ok' => false, 'error' => 'invalid']);
-    exit;
+    fail(400, 'invalid');
   }
-  $kept = [];
-  $removed = false;
-  foreach (recipes_read($file) as $item) {
-    if (($item['id'] ?? '') === $incoming) {
-      if (($item['author']['id'] ?? '') !== $authorId) {
-        http_response_code(403);
-        echo json_encode(['ok' => false, 'error' => 'forbidden']);
-        exit;
-      }
-      $removed = true;
-      continue;
-    }
-    $kept[] = $item;
+  $prev = recipes_find($pdo, $incoming);
+  if ($prev && ($prev['author']['id'] ?? '') !== $authorId) {
+    fail(403, 'forbidden');
   }
-  recipes_write($dir, $file, $kept);
-  echo json_encode(['ok' => true, 'deleted' => $incoming, 'found' => $removed], JSON_UNESCAPED_UNICODE);
+  $stmt = $pdo->prepare('DELETE FROM community_recipes WHERE id = ?');
+  $stmt->execute([$incoming]);
+  echo json_encode(['ok' => true, 'deleted' => $incoming, 'found' => (bool) $prev], JSON_UNESCAPED_UNICODE);
   exit;
 }
 
@@ -70,14 +171,10 @@ $title = clean_text($input['title'] ?? '', 80);
 $authorName = clean_text($input['author']['name'] ?? '', 60);
 $image = (string) ($input['image'] ?? '');
 if ($title === '' || $authorName === '') {
-  http_response_code(400);
-  echo json_encode(['ok' => false, 'error' => 'invalid']);
-  exit;
+  fail(400, 'invalid');
 }
 if ($image !== '' && (strpos($image, 'data:image/jpeg') !== 0 || strlen($image) > 900000)) {
-  http_response_code(400);
-  echo json_encode(['ok' => false, 'error' => 'photo']);
-  exit;
+  fail(400, 'photo');
 }
 
 $shops = ['dietetica', 'verduleria', 'carniceria', 'almacen'];
@@ -97,9 +194,7 @@ foreach (($input['steps'] ?? []) as $step) {
   if (count($steps) >= 20) break;
 }
 if (!$ingredients || !$steps) {
-  http_response_code(400);
-  echo json_encode(['ok' => false, 'error' => 'invalid']);
-  exit;
+  fail(400, 'invalid');
 }
 
 $tags = [];
@@ -115,18 +210,9 @@ $id = preg_match('/^c-[a-z0-9]+$/i', $incoming)
   ? $incoming
   : ('c-' . base_convert((string) (int) (microtime(true) * 1000), 10, 36));
 
-$all = recipes_read($file);
-$prev = null;
-foreach ($all as $item) {
-  if (($item['id'] ?? '') === $id) {
-    $prev = $item;
-    break;
-  }
-}
+$prev = recipes_find($pdo, $id);
 if ($prev && $authorId !== '' && ($prev['author']['id'] ?? '') !== $authorId) {
-  http_response_code(403);
-  echo json_encode(['ok' => false, 'error' => 'forbidden']);
-  exit;
+  fail(403, 'forbidden');
 }
 
 $recipe = [
@@ -152,9 +238,9 @@ $recipe = [
   'createdAt' => (int) ($prev['createdAt'] ?? ((int) ($input['createdAt'] ?? 0) ?: (int) round(microtime(true) * 1000))),
 ];
 
-$existing = array_values(array_filter($all, function ($item) use ($id) {
-  return ($item['id'] ?? '') !== $id;
-}));
-$recipes = array_slice(array_merge([$recipe], $existing), 0, 80);
-recipes_write($dir, $file, $recipes);
+recipes_save($pdo, $recipe);
 echo json_encode(['ok' => true, 'recipe' => $recipe], JSON_UNESCAPED_UNICODE);
+
+} catch (PDOException $e) {
+  fail(500, 'db');
+}

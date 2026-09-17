@@ -11,6 +11,7 @@ node_modules
 dist
 dist-ssr
 *.local
+public/db-config.php
 
 # Editor directories and files
 .vscode/*

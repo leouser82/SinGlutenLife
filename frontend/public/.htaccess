@@ -1,3 +1,7 @@
+<Files "db-config.php">
+  Require all denied
+</Files>
+
 RewriteEngine On
 RewriteBase /
 

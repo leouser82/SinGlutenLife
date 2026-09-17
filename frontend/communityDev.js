@@ -3,7 +3,7 @@ import path from 'node:path'
 import { fileURLToPath } from 'node:url'
 
 const dir = path.join(path.dirname(fileURLToPath(import.meta.url)), 'public', 'data')
-const file = path.join(dir, 'community-recipes.json')
+const file = path.join(dir, 'community-recipes.json') // solo Vite local; en Hostinger usa MySQL
 
 function readAll() {
   try {

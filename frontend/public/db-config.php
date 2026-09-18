@@ -9,5 +9,5 @@ return [
   'port' => 3306,
   'name' => 'u290440545_Recetas',
   'user' => 'u290440545_leoSingluten',
-  'pass' => 'TU_CONTRASEÑA',
+  'pass' => 'Camoja05',
 ];

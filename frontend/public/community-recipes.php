@@ -12,6 +12,14 @@ if (($_SERVER['REQUEST_METHOD'] ?? '') === 'OPTIONS') {
 
 define('SGL_DB', true);
 
+$sgl_db = [
+  'host' => 'localhost',
+  'port' => 3306,
+  'name' => 'u290440545_Recetas',
+  'user' => 'u290440545_leoSingluten',
+  'pass' => 'Camoja05',
+];
+
 function fail($code, $error, $detail = '') {
   http_response_code($code);
   $payload = ['ok' => false, 'error' => $error];
@@ -29,19 +37,14 @@ register_shutdown_function(function () {
 });
 
 function load_config() {
-  foreach (['db-config.php', 'db-config.example.php'] as $name) {
-    $path = __DIR__ . '/' . $name;
-    if (!is_file($path)) continue;
-    $config = include $path;
-    if (is_array($config)) return $config;
+  global $sgl_db;
+  $config = is_array($sgl_db) ? $sgl_db : [];
+  $path = __DIR__ . '/db-config.php';
+  if (is_file($path)) {
+    $extra = include $path;
+    if (is_array($extra)) $config = array_merge($config, $extra);
   }
-  return [
-    'host' => 'localhost',
-    'port' => 3306,
-    'name' => 'u290440545_Recetas',
-    'user' => 'u290440545_leoSingluten',
-    'pass' => 'TU_CONTRASEÑA',
-  ];
+  return $config;
 }
 
 function db($config) {

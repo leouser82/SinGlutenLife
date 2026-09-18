@@ -268,12 +268,17 @@ export async function loadGuidePlaces(lat, lon, km) {
 
 /** OpenStreetMap suma locales que las guías todavía no cargaron. */
 export function osmGlutenQuery(lat, lon, km) {
+  return osmWorldGlutenQuery(lat, lon, km, 20)
+}
+
+export function osmWorldGlutenQuery(lat, lon, km, timeout = 25) {
   const radius = Math.round(km * 1000)
-  return `[out:json][timeout:20];
+  return `[out:json][timeout:${timeout}];
 (
-  node["diet:gluten_free"~"yes|only|limited"](around:${radius},${lat},${lon});
-  way["diet:gluten_free"~"yes|only|limited"](around:${radius},${lat},${lon});
-  node["name"~"sin *tacc|celia|gluten",i](around:${radius},${lat},${lon});
+  nwr["diet:gluten_free"~"yes|only|limited"](around:${radius},${lat},${lon});
+  nwr["gluten_free"~"yes|only"](around:${radius},${lat},${lon});
+  nwr["cuisine"~"gluten_free"](around:${radius},${lat},${lon});
+  node["name"~"sin *tacc|sin gluten|gluten.?free|sans gluten|senza glutine|glutenfrei|glutenvrij|celia|coeliac",i](around:${radius},${lat},${lon});
 );
 out tags center;`
 }

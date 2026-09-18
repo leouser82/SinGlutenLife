@@ -62,6 +62,19 @@ async function fetchJson(url, options = {}, ms = 12000) {
   }
 }
 
+export async function searchPlace(query) {
+  const q = String(query || '').trim()
+  if (!q) return null
+  const data = await fetchJson(`https://photon.komoot.io/api/?q=${encodeURIComponent(q)}&limit=1`)
+  const feat = data?.features?.[0]
+  const coords = feat?.geometry?.coordinates
+  if (!Array.isArray(coords) || coords.length < 2) return null
+  const [lon, lat] = coords
+  const props = feat.properties || {}
+  const label = [props.name, props.city, props.state, props.country].filter(Boolean).join(', ')
+  return { lat: Number(lat), lon: Number(lon), label: label || q }
+}
+
 export async function reverseLabel(lat, lon) {
   const url = `https://api.bigdatacloud.net/data/reverse-geocode-client?latitude=${lat}&longitude=${lon}&localityLanguage=es`
   const data = await fetchJson(url)

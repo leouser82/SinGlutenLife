@@ -15,6 +15,9 @@ export function IconHome() {
 export function IconShop() {
   return <Icon d="M4 9h16l-1.2 11H5.2L4 9zm2-4h12l1 4H5l1-4z" />
 }
+export function IconGlobe() {
+  return <Icon d="M12 21a9 9 0 1 0 0-18 9 9 0 0 0 0 18zM3.6 9h16.8M3.6 15h16.8M12 3c2.6 3 4 6.4 4 9s-1.4 6-4 9c-2.6-3-4-6.4-4-9s1.4-6 4-9z" />
+}
 export function IconPill() {
   return <Icon d="M8.5 15.5 15.5 8.5a4 4 0 0 1 5.6 5.6l-7 7a4 4 0 0 1-5.6-5.6zM7 17l-2 2" />
 }

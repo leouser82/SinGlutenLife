@@ -3,7 +3,7 @@ import { useAuth } from '../auth/AuthContext.jsx'
 import { useLocationData } from '../geo/LocationContext.jsx'
 import LangSwitch from '../i18n/LangSwitch.jsx'
 import { useI18n } from '../i18n/LanguageContext.jsx'
-import { BrandMark, IconBook, IconHome, IconPin, IconPlus, IconShop } from './Icons.jsx'
+import { BrandMark, IconBook, IconGlobe, IconHome, IconPin, IconPlus, IconShop } from './Icons.jsx'
 
 export default function Layout() {
   const { label, status, locate, source } = useLocationData()
@@ -12,6 +12,7 @@ export default function Layout() {
   const links = [
     { to: '/', label: t('nav.home'), icon: IconHome, end: true },
     { to: '/lugares', label: t('nav.places'), icon: IconShop },
+    { to: '/lugares-remotos', label: t('nav.remote'), icon: IconGlobe },
     { to: '/recetas', label: t('nav.recipes'), icon: IconBook, end: true },
   ]
 

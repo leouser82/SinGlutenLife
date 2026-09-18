@@ -1,6 +1,7 @@
 const es = {
   'nav.home': 'Inicio',
-  'nav.places': 'Lugares',
+  'nav.places': 'Lugares cercanos',
+  'nav.remote': 'Lugares remotos',
   'nav.recipes': 'Recetas',
   'brand.tag': 'Comé rico. Comé seguro.',
   'loc.searching': 'Buscando…',
@@ -55,6 +56,18 @@ const es = {
   'places.emptyKm': 'No hay locales publicados a 25 km de {label}. Elegí una ciudad arriba o ',
   'places.useGps': 'usá el GPS',
   'places.noFilter': 'No hay resultados con ese filtro.',
+  'remote.title': 'Lugares remotos',
+  'remote.lead':
+    'Elegí un punto en el mapa o buscá una ciudad. Traemos locales publicados como sin TACC cerca, en cualquier parte del mundo. En el mostrador, confirmá igual.',
+  'remote.search': 'Ciudad, barrio o país…',
+  'remote.searchBtn': 'Buscar',
+  'remote.pick': 'O tocá el mapa para dejar el pin.',
+  'remote.loading': 'Buscando lugares sin TACC cerca de {label}…',
+  'remote.around': 'Punto elegido · {label}',
+  'remote.count': '{n} lugares publicados a menos de 25 km de {label}, {dedicated} con cocina 100% libre de gluten.',
+  'remote.empty':
+    'No hay locales publicados como sin TACC a 25 km de {label}. Probá otro punto o una ciudad más grande.',
+  'remote.error': 'No pudimos buscar en esa zona. Tocá de nuevo o probá otra ciudad.',
   'recipes.title': 'Cociná sin TACC',
   'recipes.lead':
     'Recetas publicadas de varias fuentes, con el paso a paso y un lugar cerca para cada ingrediente. Hay una distinta cada día. Confirmá siempre el sello sin TACC en el paquete.',
@@ -161,7 +174,8 @@ const es = {
 
 const en = {
   'nav.home': 'Home',
-  'nav.places': 'Places',
+  'nav.places': 'Nearby places',
+  'nav.remote': 'Remote places',
   'nav.recipes': 'Recipes',
   'brand.tag': 'Eat well. Eat safe.',
   'loc.searching': 'Finding…',
@@ -216,6 +230,17 @@ const en = {
   'places.emptyKm': 'No published venues within 25 km of {label}. Pick a city above or ',
   'places.useGps': 'use GPS',
   'places.noFilter': 'No results with that filter.',
+  'remote.title': 'Remote places',
+  'remote.lead':
+    'Pick a point on the map or search a city. We bring places published as gluten-free nearby, anywhere in the world. At the counter, still ask.',
+  'remote.search': 'City, neighborhood or country…',
+  'remote.searchBtn': 'Search',
+  'remote.pick': 'Or tap the map to drop the pin.',
+  'remote.loading': 'Looking for gluten-free places near {label}…',
+  'remote.around': 'Chosen point · {label}',
+  'remote.count': '{n} published places within 25 km of {label}, {dedicated} with a 100% gluten-free kitchen.',
+  'remote.empty': 'No places published as gluten-free within 25 km of {label}. Try another point or a larger city.',
+  'remote.error': 'We could not search that area. Tap again or try another city.',
   'recipes.title': 'Cook gluten-free',
   'recipes.lead':
     'Published recipes, with the steps and a nearby shop for each ingredient. A different one each day. Always check the gluten-free mark on the pack.',
@@ -322,7 +347,8 @@ const en = {
 
 const it = {
   'nav.home': 'Inizio',
-  'nav.places': 'Luoghi',
+  'nav.places': 'Luoghi vicini',
+  'nav.remote': 'Luoghi lontani',
   'nav.recipes': 'Ricette',
   'brand.tag': 'Mangia bene. Mangia sicuro.',
   'loc.searching': 'Cerco…',
@@ -377,6 +403,17 @@ const it = {
   'places.emptyKm': 'Nessun locale pubblicato a 25 km da {label}. Scegli una città sopra o ',
   'places.useGps': 'usa il GPS',
   'places.noFilter': 'Nessun risultato con quel filtro.',
+  'remote.title': 'Luoghi lontani',
+  'remote.lead':
+    'Scegli un punto sulla mappa o cerca una città. Portiamo locali pubblicati come senza glutine vicino, in qualsiasi parte del mondo. Al banco, chiedi lo stesso.',
+  'remote.search': 'Città, quartiere o paese…',
+  'remote.searchBtn': 'Cerca',
+  'remote.pick': 'O tocca la mappa per lasciare il pin.',
+  'remote.loading': 'Cerco luoghi senza glutine vicino a {label}…',
+  'remote.around': 'Punto scelto · {label}',
+  'remote.count': '{n} luoghi pubblicati a meno di 25 km da {label}, {dedicated} con cucina 100% senza glutine.',
+  'remote.empty': 'Nessun locale pubblicato come senza glutine a 25 km da {label}. Prova un altro punto o una città più grande.',
+  'remote.error': 'Non siamo riusciti a cercare in quella zona. Tocca di nuovo o prova un’altra città.',
   'recipes.title': 'Cucina senza glutine',
   'recipes.lead':
     'Ricette pubblicate, con i passi e un negozio vicino per ogni ingrediente. Una diversa ogni giorno. Controlla sempre il marchio senza glutine sulla confezione.',
@@ -483,7 +520,8 @@ const it = {
 
 const fr = {
   'nav.home': 'Accueil',
-  'nav.places': 'Lieux',
+  'nav.places': 'Lieux proches',
+  'nav.remote': 'Lieux lointains',
   'nav.recipes': 'Recettes',
   'brand.tag': 'Bien manger. Manger sûr.',
   'loc.searching': 'Recherche…',
@@ -538,6 +576,17 @@ const fr = {
   'places.emptyKm': 'Aucun lieu publié à 25 km de {label}. Choisissez une ville ci-dessus ou ',
   'places.useGps': 'utilisez le GPS',
   'places.noFilter': 'Aucun résultat avec ce filtre.',
+  'remote.title': 'Lieux lointains',
+  'remote.lead':
+    'Choisissez un point sur la carte ou cherchez une ville. Nous apportons les lieux publiés sans gluten à proximité, partout dans le monde. Au comptoir, demandez quand même.',
+  'remote.search': 'Ville, quartier ou pays…',
+  'remote.searchBtn': 'Chercher',
+  'remote.pick': 'Ou touchez la carte pour poser l’épingle.',
+  'remote.loading': 'Recherche de lieux sans gluten près de {label}…',
+  'remote.around': 'Point choisi · {label}',
+  'remote.count': '{n} lieux publiés à moins de 25 km de {label}, {dedicated} avec une cuisine 100 % sans gluten.',
+  'remote.empty': 'Aucun lieu publié comme sans gluten à 25 km de {label}. Essayez un autre point ou une plus grande ville.',
+  'remote.error': 'Impossible de chercher dans cette zone. Touchez encore ou essayez une autre ville.',
   'recipes.title': 'Cuisiner sans gluten',
   'recipes.lead':
     'Recettes publiées, avec les étapes et un commerce proche pour chaque ingrédient. Une différente chaque jour. Vérifiez toujours le logo sans gluten sur le paquet.',
@@ -644,7 +693,8 @@ const fr = {
 
 const gl = {
   'nav.home': 'Inicio',
-  'nav.places': 'Lugares',
+  'nav.places': 'Lugares cercanos',
+  'nav.remote': 'Lugares remotos',
   'nav.recipes': 'Receitas',
   'brand.tag': 'Come rico. Come seguro.',
   'loc.searching': 'Buscando…',
@@ -699,6 +749,17 @@ const gl = {
   'places.emptyKm': 'Non hai locais publicados a 25 km de {label}. Elixe unha cidade arriba ou ',
   'places.useGps': 'usa o GPS',
   'places.noFilter': 'Non hai resultados con ese filtro.',
+  'remote.title': 'Lugares remotos',
+  'remote.lead':
+    'Escolle un punto no mapa ou busca unha cidade. Traemos locais publicados como sen TACC preto, en calquera parte do mundo. No mostrador, confirma igual.',
+  'remote.search': 'Cidade, barrio ou país…',
+  'remote.searchBtn': 'Buscar',
+  'remote.pick': 'Ou toca o mapa para deixar o pin.',
+  'remote.loading': 'Buscando lugares sen TACC preto de {label}…',
+  'remote.around': 'Punto elixido · {label}',
+  'remote.count': '{n} lugares publicados a menos de 25 km de {label}, {dedicated} con cociña 100% sen gluten.',
+  'remote.empty': 'Non hai locais publicados como sen TACC a 25 km de {label}. Proba outro punto ou unha cidade máis grande.',
+  'remote.error': 'Non puidemos buscar nesa zona. Toca de novo ou proba outra cidade.',
   'recipes.title': 'Cociña sen TACC',
   'recipes.lead':
     'Receitas publicadas, co paso a paso e un lugar preto para cada ingrediente. Hai unha distinta cada día. Confirma sempre o selo sen TACC no paquete.',

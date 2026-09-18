@@ -1,5 +1,5 @@
 import { distanceKm } from './geo.js'
-import { loadGuidePlaces, mergeGuidePlaces, osmGlutenQuery, osmToGuidePlace } from './guides.js'
+import { loadGuidePlaces, mergeGuidePlaces, osmGlutenQuery, osmToGuidePlace, osmWorldGlutenQuery } from './guides.js'
 
 /**
  * The list only carries places that a gluten-free guide publishes as such.
@@ -100,4 +100,16 @@ export async function fetchNearbyPlaces(lat, lon, onPartial) {
     .slice(0, MAX_PLACES)
 
   return { all: merged, places: merged, pharmacies: [] }
+}
+
+/** Cualquier punto del mundo: OpenStreetMap, sin las guías de Argentina. */
+export async function fetchRemotePlaces(lat, lon, onPartial) {
+  const elements = await overpass(osmWorldGlutenQuery(lat, lon, GF_KM), 22000)
+  const places = mergeGuidePlaces(elements.map(osmToGuidePlace).filter(Boolean))
+    .map((item) => guideToPlace(item, { lat, lon }))
+    .filter((place) => place.distanceKm <= GF_KM)
+    .sort((a, b) => a.distanceKm - b.distanceKm)
+    .slice(0, MAX_PLACES)
+  onPartial?.({ all: places, places, pharmacies: [] })
+  return { all: places, places, pharmacies: [] }
 }

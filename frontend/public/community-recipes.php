@@ -1,30 +1,67 @@
 <?php
 header('Content-Type: application/json; charset=utf-8');
 header('Cache-Control: no-store');
+header('Access-Control-Allow-Origin: *');
+header('Access-Control-Allow-Methods: GET, POST, OPTIONS');
+header('Access-Control-Allow-Headers: Content-Type');
+
+if (($_SERVER['REQUEST_METHOD'] ?? '') === 'OPTIONS') {
+  http_response_code(204);
+  exit;
+}
 
 define('SGL_DB', true);
-$config = require __DIR__ . '/db-config.php';
+
+function fail($code, $error, $detail = '') {
+  http_response_code($code);
+  $payload = ['ok' => false, 'error' => $error];
+  if ($detail !== '') $payload['detail'] = $detail;
+  echo json_encode($payload, JSON_UNESCAPED_UNICODE);
+  exit;
+}
+
+register_shutdown_function(function () {
+  $err = error_get_last();
+  if (!$err || !in_array($err['type'], [E_ERROR, E_PARSE, E_CORE_ERROR, E_COMPILE_ERROR], true)) return;
+  if (!headers_sent()) header('Content-Type: application/json; charset=utf-8');
+  http_response_code(500);
+  echo json_encode(['ok' => false, 'error' => 'php', 'detail' => $err['message']], JSON_UNESCAPED_UNICODE);
+});
+
+function load_config() {
+  foreach (['db-config.php', 'db-config.example.php'] as $name) {
+    $path = __DIR__ . '/' . $name;
+    if (!is_file($path)) continue;
+    $config = include $path;
+    if (is_array($config)) return $config;
+  }
+  return [
+    'host' => 'localhost',
+    'port' => 3306,
+    'name' => 'u290440545_Recetas',
+    'user' => 'u290440545_leoSingluten',
+    'pass' => 'TU_CONTRASEÑA',
+  ];
+}
 
 function db($config) {
   static $pdo = null;
   if ($pdo) return $pdo;
+  $pass = (string) ($config['pass'] ?? '');
+  if ($pass === '' || $pass === 'TU_CONTRASEÑA') {
+    fail(500, 'db-password', 'Poné la contraseña real en db-config.php y subí ese archivo junto a community-recipes.php');
+  }
   $dsn = sprintf(
     'mysql:host=%s;port=%d;dbname=%s;charset=utf8mb4',
     $config['host'],
     $config['port'],
     $config['name']
   );
-  $pdo = new PDO($dsn, $config['user'], $config['pass'], [
+  $pdo = new PDO($dsn, $config['user'], $pass, [
     PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION,
     PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC,
   ]);
   return $pdo;
-}
-
-function fail($code, $error) {
-  http_response_code($code);
-  echo json_encode(['ok' => false, 'error' => $error], JSON_UNESCAPED_UNICODE);
-  exit;
 }
 
 function clean_picture($value) {
@@ -82,49 +119,43 @@ function recipes_find($pdo, $id) {
   return $row ? row_to_recipe($row) : null;
 }
 
+function recipe_params($recipe) {
+  return [
+    $recipe['title'],
+    $recipe['summary'],
+    $recipe['minutes'],
+    $recipe['servings'],
+    $recipe['difficulty'],
+    json_encode($recipe['tags'], JSON_UNESCAPED_UNICODE),
+    json_encode($recipe['ingredients'], JSON_UNESCAPED_UNICODE),
+    json_encode($recipe['steps'], JSON_UNESCAPED_UNICODE),
+    $recipe['image'],
+    $recipe['sourceName'],
+    $recipe['sourceUrl'],
+    $recipe['author']['id'],
+    $recipe['author']['name'],
+    $recipe['author']['picture'],
+    $recipe['author']['provider'],
+    $recipe['createdAt'],
+    $recipe['id'],
+  ];
+}
+
 function recipes_save($pdo, $recipe) {
-  $sql = 'INSERT INTO community_recipes (
-      id, title, summary, minutes, servings, difficulty, tags, ingredients, steps, image,
-      source_name, source_url, author_id, author_name, author_picture, author_provider, created_at
-    ) VALUES (
-      :id, :title, :summary, :minutes, :servings, :difficulty, :tags, :ingredients, :steps, :image,
-      :source_name, :source_url, :author_id, :author_name, :author_picture, :author_provider, :created_at
-    ) ON DUPLICATE KEY UPDATE
-      title = VALUES(title),
-      summary = VALUES(summary),
-      minutes = VALUES(minutes),
-      servings = VALUES(servings),
-      difficulty = VALUES(difficulty),
-      tags = VALUES(tags),
-      ingredients = VALUES(ingredients),
-      steps = VALUES(steps),
-      image = VALUES(image),
-      source_name = VALUES(source_name),
-      source_url = VALUES(source_url),
-      author_id = VALUES(author_id),
-      author_name = VALUES(author_name),
-      author_picture = VALUES(author_picture),
-      author_provider = VALUES(author_provider)';
-  $stmt = $pdo->prepare($sql);
-  $stmt->execute([
-    ':id' => $recipe['id'],
-    ':title' => $recipe['title'],
-    ':summary' => $recipe['summary'],
-    ':minutes' => $recipe['minutes'],
-    ':servings' => $recipe['servings'],
-    ':difficulty' => $recipe['difficulty'],
-    ':tags' => json_encode($recipe['tags'], JSON_UNESCAPED_UNICODE),
-    ':ingredients' => json_encode($recipe['ingredients'], JSON_UNESCAPED_UNICODE),
-    ':steps' => json_encode($recipe['steps'], JSON_UNESCAPED_UNICODE),
-    ':image' => $recipe['image'],
-    ':source_name' => $recipe['sourceName'],
-    ':source_url' => $recipe['sourceUrl'],
-    ':author_id' => $recipe['author']['id'],
-    ':author_name' => $recipe['author']['name'],
-    ':author_picture' => $recipe['author']['picture'],
-    ':author_provider' => $recipe['author']['provider'],
-    ':created_at' => $recipe['createdAt'],
-  ]);
+  $fields = 'title=?, summary=?, minutes=?, servings=?, difficulty=?, tags=?, ingredients=?, steps=?, image=?,
+    source_name=?, source_url=?, author_id=?, author_name=?, author_picture=?, author_provider=?, created_at=?';
+  if (recipes_find($pdo, $recipe['id'])) {
+    $stmt = $pdo->prepare("UPDATE community_recipes SET $fields WHERE id=?");
+    $stmt->execute(recipe_params($recipe));
+  } else {
+    $stmt = $pdo->prepare(
+      'INSERT INTO community_recipes (
+        title, summary, minutes, servings, difficulty, tags, ingredients, steps, image,
+        source_name, source_url, author_id, author_name, author_picture, author_provider, created_at, id
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)'
+    );
+    $stmt->execute(recipe_params($recipe));
+  }
   $pdo->exec('DELETE FROM community_recipes WHERE id NOT IN (
     SELECT id FROM (
       SELECT id FROM community_recipes ORDER BY created_at DESC LIMIT 80
@@ -133,9 +164,9 @@ function recipes_save($pdo, $recipe) {
 }
 
 try {
-  $pdo = db($config);
-} catch (PDOException $e) {
-  fail(500, 'db');
+  $pdo = db(load_config());
+} catch (Throwable $e) {
+  fail(500, 'db', $e->getMessage());
 }
 
 try {
@@ -241,6 +272,6 @@ $recipe = [
 recipes_save($pdo, $recipe);
 echo json_encode(['ok' => true, 'recipe' => $recipe], JSON_UNESCAPED_UNICODE);
 
-} catch (PDOException $e) {
-  fail(500, 'db');
+} catch (Throwable $e) {
+  fail(500, 'db', $e->getMessage());
 }

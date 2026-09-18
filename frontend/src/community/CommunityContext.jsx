@@ -13,8 +13,12 @@ export function CommunityProvider({ children }) {
   const [community, setCommunity] = useState([])
 
   const refresh = useCallback(async () => {
-    const list = await fetchCommunityRecipes()
-    setCommunity(list)
+    try {
+      const list = await fetchCommunityRecipes()
+      setCommunity(list)
+    } catch {
+      setCommunity([])
+    }
   }, [])
 
   useEffect(() => {

@@ -19,14 +19,6 @@ function writeLocal(recipes) {
   }
 }
 
-function merge(server, local) {
-  const map = new Map()
-  for (const recipe of [...local, ...server]) {
-    if (recipe?.id) map.set(recipe.id, recipe)
-  }
-  return [...map.values()].sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0))
-}
-
 function communityUrls() {
   return [...apiCandidates('api/community-recipes'), ...apiCandidates('community-recipes.php')]
 }
@@ -38,21 +30,22 @@ async function readJson(response) {
 }
 
 export async function fetchCommunityRecipes() {
-  const local = readLocal()
+  let last = new Error('community')
   for (const url of communityUrls()) {
     try {
       const response = await fetch(url, { cache: 'no-store' })
-      if (!response.ok) continue
       const data = await readJson(response)
-      if (!Array.isArray(data?.recipes)) continue
-      const recipes = merge(data.recipes, local)
-      writeLocal(recipes)
-      return recipes
-    } catch {
-      // next
+      if (!response.ok || !Array.isArray(data?.recipes)) {
+        last = new Error(data?.error || `http-${response.status}`)
+        continue
+      }
+      writeLocal(data.recipes)
+      return data.recipes
+    } catch (error) {
+      last = error
     }
   }
-  return local
+  throw last
 }
 
 export async function publishCommunityRecipe(recipe) {
@@ -69,8 +62,7 @@ export async function publishCommunityRecipe(recipe) {
         }
       : recipe.author,
   }
-  const local = [ready, ...readLocal().filter((item) => item.id !== ready.id)]
-  writeLocal(local)
+  let last = new Error('publish')
   for (const url of communityUrls()) {
     try {
       const response = await fetch(url, {
@@ -78,23 +70,22 @@ export async function publishCommunityRecipe(recipe) {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(ready),
       })
-      if (!response.ok) continue
       const data = await readJson(response)
       if (data?.ok && data?.recipe?.id) {
-        const next = merge([data.recipe], local)
+        const next = [data.recipe, ...readLocal().filter((item) => item.id !== data.recipe.id)]
         writeLocal(next)
         return data.recipe
       }
-    } catch {
-      // next
+      last = new Error(data?.error || `http-${response.status}`)
+    } catch (error) {
+      last = error
     }
   }
-  return ready
+  throw last
 }
 
 export async function deleteCommunityRecipe(id, author) {
-  const local = readLocal().filter((item) => item.id !== id)
-  writeLocal(local)
+  let last = new Error('delete')
   for (const url of communityUrls()) {
     try {
       const response = await fetch(url, {
@@ -102,14 +93,17 @@ export async function deleteCommunityRecipe(id, author) {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ action: 'delete', id, author }),
       })
-      if (!response.ok) continue
       const data = await readJson(response)
-      if (data?.ok) return true
-    } catch {
-      // next
+      if (data?.ok) {
+        writeLocal(readLocal().filter((item) => item.id !== id))
+        return true
+      }
+      last = new Error(data?.error || `http-${response.status}`)
+    } catch (error) {
+      last = error
     }
   }
-  return true
+  throw last
 }
 
 export function resizePhoto(file) {

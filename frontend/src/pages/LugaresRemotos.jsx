@@ -92,13 +92,15 @@ export default function LugaresRemotos() {
     setFollow(fly)
     setTooWide(false)
     setStatus('loading')
-    setLabel(usefulLabel(name) || `${next.lat.toFixed(3)}, ${next.lon.toFixed(3)}`)
+    const hint = usefulLabel(name)
+    setLabel(hint || `${next.lat.toFixed(3)}, ${next.lon.toFixed(3)}`)
 
-    try {
-      const found = usefulLabel(name) || (await reverseLabel(next.lat, next.lon))
-      if (id === reqId.current) setLabel(found)
-    } catch {
-      // coords
+    if (!hint) {
+      reverseLabel(next.lat, next.lon)
+        .then((found) => {
+          if (id === reqId.current) setLabel(found)
+        })
+        .catch(() => {})
     }
 
     try {
@@ -107,7 +109,7 @@ export default function LugaresRemotos() {
         setPlaces(partial.places)
         rememberPlaces(partial.places, partial.pharmacies || [])
         if (partial.places.length) setStatus('ready')
-      }, { bounds: extra.bounds, km: 40, signal: ac.signal })
+      }, { bounds: extra.bounds, km: 40, signal: ac.signal, hint })
       if (id !== reqId.current) return
       setPlaces(nearby.places)
       rememberPlaces(nearby.places, nearby.pharmacies || [])

@@ -15,10 +15,6 @@ const SINTACCTO_MID = '18wKMA95xo1ZX2iyGu9_-iv3Jr9gilM4'
 const SINTACCTO_KML = `https://www.google.com/maps/d/kml?mid=${SINTACCTO_MID}&forcekml=1`
 const SINTACCTO_POST = 'https://sintaccto.com/sintacc/2024/01/15/mapa-celiaco-de-la-ciudad-de-buenos-aires/'
 
-const CACHE_PREFIX = 'sgl-guias-v1'
-const CACHE_KM = 60
-const DAY_MS = 24 * 60 * 60 * 1000
-
 const TYPE_LABEL = {
   restaurant: 'Restaurante',
   bakery: 'Panadería',
@@ -78,7 +74,20 @@ async function fetchText(url, timeoutMs) {
   }
 }
 
+let celimapMemo
+let sintacctoMemo
+
 async function loadCelimap() {
+  if (!celimapMemo) {
+    celimapMemo = loadCelimapOnce().catch((error) => {
+      celimapMemo = null
+      throw error
+    })
+  }
+  return celimapMemo
+}
+
+async function loadCelimapOnce() {
   const data = await fetchApiJson(CELIMAP_PATH, 30000)
   return (data.places || [])
     .filter((item) => item?.status !== 'rejected' && item?.location?.lat && item?.location?.lng)
@@ -149,6 +158,16 @@ function sintacctoType(value) {
 }
 
 async function loadSintaccto() {
+  if (!sintacctoMemo) {
+    sintacctoMemo = loadSintacctoOnce().catch((error) => {
+      sintacctoMemo = null
+      throw error
+    })
+  }
+  return sintacctoMemo
+}
+
+async function loadSintacctoOnce() {
   const xml = await fetchText(SINTACCTO_KML, 30000)
   const doc = new DOMParser().parseFromString(xml, 'text/xml')
   const places = []
@@ -217,53 +236,37 @@ export function mergeGuidePlaces(list) {
   return [...byKey.values()]
 }
 
-function readCache(key) {
-  try {
-    const raw = localStorage.getItem(key)
-    if (!raw) return null
-    const data = JSON.parse(raw)
-    if (!data?.at || Date.now() - data.at > DAY_MS) return null
-    return data.places || null
-  } catch {
-    return null
-  }
-}
+let mergedGuidesMemo
 
-function writeCache(key, places) {
-  try {
-    localStorage.setItem(key, JSON.stringify({ at: Date.now(), places }))
-  } catch {
-    // el cupo del navegador es un extra, no un requisito
+async function loadAllGuides() {
+  if (!mergedGuidesMemo) {
+    mergedGuidesMemo = Promise.all([loadCelimap().catch(() => []), loadSintaccto().catch(() => [])])
+      .then(([celimap, sintaccto]) => mergeGuidePlaces([...celimap, ...sintaccto]))
+      .catch((error) => {
+        mergedGuidesMemo = null
+        throw error
+      })
   }
+  return mergedGuidesMemo
 }
 
 /**
- * Lugares de las guías a menos de `km`, el más cercano primero. El listado del
- * país se guarda un día en el navegador, así la segunda visita es inmediata.
+ * Lugares de las guías a menos de `km`, el más cercano primero.
  */
 export async function loadGuidePlaces(lat, lon, km) {
   const origin = { lat, lon }
-  const key = `${CACHE_PREFIX}:${lat.toFixed(1)}:${lon.toFixed(1)}`
-
-  let near = readCache(key)
-  if (!near) {
-    const [celimap, sintaccto] = await Promise.all([
-      loadCelimap().catch(() => []),
-      loadSintaccto().catch(() => []),
-    ])
-    if (!celimap.length && !sintaccto.length) return []
-
-    near = mergeGuidePlaces([...celimap, ...sintaccto]).filter(
-      (place) => distanceKm(origin, place) <= CACHE_KM,
-    )
-    // Si una guía falló, la lista queda incompleta: se usa, pero no se guarda.
-    if (celimap.length && sintaccto.length) writeCache(key, near)
-  }
-
-  return near
+  const all = await loadAllGuides()
+  return all
     .map((place) => ({ ...place, distanceKm: distanceKm(origin, place) }))
     .filter((place) => place.distanceKm <= km)
     .sort((a, b) => a.distanceKm - b.distanceKm)
+}
+
+function osmArea(lat, lon, km, bounds) {
+  if (bounds && Number.isFinite(bounds.south) && Number.isFinite(bounds.north)) {
+    return `(${bounds.south},${bounds.west},${bounds.north},${bounds.east})`
+  }
+  return `(around:${Math.round(km * 1000)},${lat},${lon})`
 }
 
 /** OpenStreetMap suma locales que las guías todavía no cargaron. */
@@ -271,21 +274,28 @@ export function osmGlutenQuery(lat, lon, km) {
   return osmWorldGlutenQuery(lat, lon, km, 20)
 }
 
-export function osmWorldGlutenQuery(lat, lon, km, timeout = 25) {
-  const radius = Math.round(km * 1000)
+export function osmWorldGlutenQuery(lat, lon, km, timeout = 25, bounds) {
+  const area = osmArea(lat, lon, km, bounds)
   return `[out:json][timeout:${timeout}];
 (
-  nwr["diet:gluten_free"~"yes|only|limited"](around:${radius},${lat},${lon});
-  nwr["gluten_free"~"yes|only"](around:${radius},${lat},${lon});
-  nwr["cuisine"~"gluten_free"](around:${radius},${lat},${lon});
-  node["name"~"sin *tacc|sin gluten|gluten.?free|sans gluten|senza glutine|glutenfrei|glutenvrij|celia|coeliac",i](around:${radius},${lat},${lon});
+  nwr["diet:gluten_free"~"yes|only|limited"]${area};
+  nwr["gluten_free"~"yes|only"]${area};
+  nwr["cuisine"~"gluten_free"]${area};
 );
 out tags center;`
 }
 
+/** Segunda pasada, más barata: solo nodos con el nombre publicado. */
+export function osmWorldNameQuery(lat, lon, km, timeout = 20, bounds) {
+  const area = osmArea(lat, lon, km, bounds)
+  return `[out:json][timeout:${timeout}];
+node["name"~"sin *tacc|sin gluten|gluten.?free|sans gluten|senza glutine|glutenfrei|glutenvrij|celia|coeliac",i]${area};
+out tags;`
+}
+
 export function osmToGuidePlace(element) {
   const tags = element.tags || {}
-  const name = tags.name || tags.brand || ''
+  const name = tags.name || tags.brand || tags['name:es'] || tags['name:en'] || ''
   const point = Number.isFinite(element.lat)
     ? { lat: element.lat, lon: element.lon }
     : element.center
@@ -293,9 +303,11 @@ export function osmToGuidePlace(element) {
       : null
   if (!name || !point) return null
 
-  const diet = String(tags['diet:gluten_free'] || '').toLowerCase()
-  const named = /sin\s*tacc|sintacc|celia|gluten/i.test(name)
-  const level = diet === 'only' ? 'dedicado' : diet || named ? 'opciones' : ''
+  const diet = String(tags['diet:gluten_free'] || tags.gluten_free || '').toLowerCase()
+  const cuisineGf = /gluten.?free/i.test(String(tags.cuisine || ''))
+  const named = /sin\s*tacc|sintacc|celia|coeliac|gluten/i.test(name)
+  const hasDiet = /^(yes|only|limited)$/.test(diet)
+  const level = diet === 'only' ? 'dedicado' : hasDiet || cuisineGf || named ? 'opciones' : ''
   if (!level) return null
 
   const type =

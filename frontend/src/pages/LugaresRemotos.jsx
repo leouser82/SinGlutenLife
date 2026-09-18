@@ -1,27 +1,47 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import ChipRow from '../components/ChipRow.jsx'
 import Pager from '../components/Pager.jsx'
 import PlaceCard from '../components/PlaceCard.jsx'
 import WorldPickMap from '../components/WorldPickMap.jsx'
+import { useLocationData } from '../geo/LocationContext.jsx'
 import { rememberPlaces } from '../geo/placeCache.js'
-import { reverseLabel, searchPlace } from '../geo/geo.js'
+import { distanceKm, reverseLabel, searchPlace } from '../geo/geo.js'
 import { fetchRemotePlaces } from '../geo/places.js'
 import { useI18n } from '../i18n/LanguageContext.jsx'
 import { labelOf } from '../i18n/labels.js'
 
 const PAGE_SIZE = 6
 
+function usefulLabel(value) {
+  const text = String(value || '').trim()
+  if (!text || /buscando|searching|unavailable|cercando/i.test(text)) return ''
+  return text
+}
+
+function isAbort(error) {
+  return error?.name === 'AbortError' || /abort/i.test(String(error?.message || ''))
+}
+
 export default function LugaresRemotos() {
   const { t } = useI18n()
+  const { coords, label: locLabel, status: locStatus } = useLocationData()
   const [query, setQuery] = useState('')
-  const [pick, setPick] = useState(null)
-  const [label, setLabel] = useState('')
+  const [pick, setPick] = useState(() => (coords ? { lat: coords.lat, lon: coords.lon } : null))
+  const [follow, setFollow] = useState(true)
+  const [label, setLabel] = useState(coords ? locLabel : '')
   const [places, setPlaces] = useState([])
   const [status, setStatus] = useState('idle')
+  const [tooWide, setTooWide] = useState(false)
   const [filter, setFilter] = useState('Todos')
   const [onlyDedicated, setOnlyDedicated] = useState(false)
   const [q, setQ] = useState('')
   const [page, setPage] = useState(1)
+  const started = useRef(false)
+  const reqId = useRef(0)
+  const lastQuery = useRef(null)
+  const abortRef = useRef(null)
+  const busy = useRef(false)
+  const pending = useRef(null)
 
   const filters = useMemo(() => {
     const types = [...new Set(places.map((place) => place.type))]
@@ -49,31 +69,70 @@ export default function LugaresRemotos() {
     if (page > pages) setPage(pages)
   }, [page, pages])
 
-  async function choose(point, name) {
+  async function lookAt(point, name, extra = {}) {
     const next = { lat: point.lat, lon: point.lon }
+    if (!Number.isFinite(next.lat) || !Number.isFinite(next.lon)) return
+    const fly = extra.fly !== false
+    const prev = lastQuery.current
+    if (prev && extra.skipClose !== false && distanceKm(prev, next) < 0.8) return
+
+    if (busy.current && extra.queue) {
+      pending.current = { point: next, name, extra }
+      return
+    }
+
+    abortRef.current?.abort()
+    const ac = new AbortController()
+    abortRef.current = ac
+    started.current = true
+    busy.current = true
+    const id = ++reqId.current
+    lastQuery.current = next
     setPick(next)
+    setFollow(fly)
+    setTooWide(false)
     setStatus('loading')
-    setPlaces([])
-    setLabel(name || `${next.lat.toFixed(3)}, ${next.lon.toFixed(3)}`)
+    setLabel(usefulLabel(name) || `${next.lat.toFixed(3)}, ${next.lon.toFixed(3)}`)
+
     try {
-      const found = name || (await reverseLabel(next.lat, next.lon))
-      setLabel(found)
+      const found = usefulLabel(name) || (await reverseLabel(next.lat, next.lon))
+      if (id === reqId.current) setLabel(found)
     } catch {
       // coords
     }
+
     try {
       const nearby = await fetchRemotePlaces(next.lat, next.lon, (partial) => {
+        if (id !== reqId.current) return
         setPlaces(partial.places)
         rememberPlaces(partial.places, partial.pharmacies || [])
         if (partial.places.length) setStatus('ready')
-      })
+      }, { bounds: extra.bounds, km: 40, signal: ac.signal })
+      if (id !== reqId.current) return
       setPlaces(nearby.places)
       rememberPlaces(nearby.places, nearby.pharmacies || [])
       setStatus('ready')
-    } catch {
+    } catch (error) {
+      if (isAbort(error) || id !== reqId.current) return
+      lastQuery.current = null
       setStatus('error')
+    } finally {
+      if (id === reqId.current) busy.current = false
+      const queued = pending.current
+      pending.current = null
+      if (queued && id === reqId.current) {
+        lookAt(queued.point, queued.name, { ...queued.extra, queue: false })
+      }
     }
   }
+
+  useEffect(() => {
+    if (started.current || !coords || locStatus === 'locating') return
+    started.current = true
+    lookAt(coords, usefulLabel(locLabel), { fly: true, skipClose: false })
+  }, [coords, locLabel, locStatus])
+
+  useEffect(() => () => abortRef.current?.abort(), [])
 
   async function onSearch(event) {
     event.preventDefault()
@@ -81,14 +140,22 @@ export default function LugaresRemotos() {
     try {
       const found = await searchPlace(query)
       if (!found) {
-        setStatus('idle')
-        setLabel('')
+        setStatus(places.length ? 'ready' : 'idle')
         return
       }
-      await choose(found, found.label)
+      await lookAt(found, found.label, { fly: true, skipClose: false })
     } catch {
       setStatus('error')
     }
+  }
+
+  function onView(view) {
+    if (!view) {
+      setTooWide(true)
+      return
+    }
+    setTooWide(false)
+    lookAt(view, '', { fly: false, bounds: view.bounds, queue: true })
   }
 
   function goPage(next) {
@@ -114,7 +181,9 @@ export default function LugaresRemotos() {
         </button>
       </form>
       <p className="note">{t('remote.pick')}</p>
-      <WorldPickMap pick={pick} places={places} onPick={(point) => choose(point)} />
+      <WorldPickMap pick={pick} places={places} follow={follow} onPick={(point) => lookAt(point, '', { fly: true })} onView={onView} />
+      {!pick && locStatus === 'locating' ? <div className="banner-proto">{t('loc.searching')}</div> : null}
+      {tooWide ? <div className="banner-proto">{t('remote.zoom')}</div> : null}
       {label ? (
         <div className="banner-proto">
           {status === 'loading' ? t('remote.loading', { label }) : t('remote.around', { label })}

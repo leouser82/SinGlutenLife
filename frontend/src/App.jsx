@@ -1,6 +1,7 @@
 import { BrowserRouter, Navigate, Route, Routes } from 'react-router-dom'
 import { AuthProvider } from './auth/AuthContext.jsx'
 import { CommunityProvider } from './community/CommunityContext.jsx'
+import Analytics from './components/Analytics.jsx'
 import Layout from './components/Layout.jsx'
 import { LocationProvider } from './geo/LocationContext.jsx'
 import { LanguageProvider } from './i18n/LanguageContext.jsx'
@@ -21,6 +22,7 @@ export default function App() {
         <LocationProvider>
           <CommunityProvider>
             <BrowserRouter basename={basename}>
+              <Analytics />
               <Routes>
                 <Route element={<Layout />}>
                   <Route index element={<Home />} />

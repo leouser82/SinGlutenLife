@@ -68,6 +68,18 @@ function France() {
   )
 }
 
+function Portugal() {
+  return (
+    <Frame>
+      <rect width="36" height="24" fill="#ff0000" />
+      <rect width="14.4" height="24" fill="#006600" />
+      <circle cx="14.4" cy="12" r="4.4" fill="#ffd700" />
+      <circle cx="14.4" cy="12" r="2.55" fill="#c8102e" />
+      <circle cx="14.4" cy="12" r="1.15" fill="#fff" />
+    </Frame>
+  )
+}
+
 function Galicia() {
   return (
     <Frame>
@@ -82,6 +94,7 @@ const FLAGS = {
   en: UnitedKingdom,
   it: Italy,
   fr: France,
+  pt: Portugal,
   gl: Galicia,
 }
 

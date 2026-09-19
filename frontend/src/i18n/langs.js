@@ -3,6 +3,7 @@ export const LANGS = [
   { id: 'en', label: 'English', short: 'EN' },
   { id: 'it', label: 'Italiano', short: 'IT' },
   { id: 'fr', label: 'Français', short: 'FR' },
+  { id: 'pt', label: 'Português', short: 'PT' },
   { id: 'gl', label: 'Galego', short: 'GL' },
 ]
 
@@ -21,6 +22,7 @@ export function detectLang() {
     if (code.startsWith('gl')) return 'gl'
     if (code.startsWith('it')) return 'it'
     if (code.startsWith('fr')) return 'fr'
+    if (code.startsWith('pt')) return 'pt'
     if (code.startsWith('en')) return 'en'
     if (code.startsWith('es')) return 'es'
   }

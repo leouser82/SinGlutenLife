@@ -92,15 +92,20 @@ export default function LugaresRemotos() {
     setFollow(fly)
     setTooWide(false)
     setStatus('loading')
-    const hint = usefulLabel(name)
+    let hint = usefulLabel(name)
     setLabel(hint || `${next.lat.toFixed(3)}, ${next.lon.toFixed(3)}`)
 
     if (!hint) {
-      reverseLabel(next.lat, next.lon)
-        .then((found) => {
-          if (id === reqId.current) setLabel(found)
-        })
-        .catch(() => {})
+      try {
+        const found = usefulLabel(await reverseLabel(next.lat, next.lon))
+        if (id !== reqId.current) return
+        if (found) {
+          hint = found
+          setLabel(found)
+        }
+      } catch {
+        // seguimos con el punto
+      }
     }
 
     try {

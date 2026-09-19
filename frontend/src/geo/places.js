@@ -14,8 +14,9 @@ import {
  */
 
 const OVERPASS_ENDPOINTS = [
+  'https://overpass.kumi.systems/api/interpreter',
   'https://lz4.overpass-api.de/api/interpreter',
-  'https://overpass-api.de/api/interpreter',
+  'https://overpass.private.coffee/api/interpreter',
 ]
 
 const GF_KM = 25
@@ -60,14 +61,14 @@ function guideToPlace(item, origin) {
   }
 }
 
-async function overpass(query, timeoutMs = 8000, signal) {
+async function overpassOnce(url, query, timeoutMs, signal) {
   if (signal?.aborted) throw new DOMException('aborted', 'AbortError')
   const controller = new AbortController()
   const timer = setTimeout(() => controller.abort(), timeoutMs)
   const onAbort = () => controller.abort()
   signal?.addEventListener('abort', onAbort)
   try {
-    const response = await fetch(OVERPASS_ENDPOINTS[0], {
+    const response = await fetch(url, {
       method: 'POST',
       headers: { 'Content-Type': 'application/x-www-form-urlencoded;charset=UTF-8' },
       body: new URLSearchParams({ data: query }),
@@ -81,6 +82,19 @@ async function overpass(query, timeoutMs = 8000, signal) {
     clearTimeout(timer)
     signal?.removeEventListener('abort', onAbort)
   }
+}
+
+async function overpass(query, timeoutMs = 7000, signal) {
+  let lastError
+  for (const url of OVERPASS_ENDPOINTS) {
+    try {
+      return await overpassOnce(url, query, timeoutMs, signal)
+    } catch (error) {
+      lastError = error
+      if (error?.name === 'AbortError' && signal?.aborted) throw error
+    }
+  }
+  throw lastError || new Error('overpass')
 }
 
 function inArgentina(lat, lon) {
@@ -120,7 +134,7 @@ function toList(items, lat, lon, km) {
     .slice(0, MAX_PLACES)
 }
 
-/** En Argentina las guías. Afuera, Photon/Nominatim y Overpass si responde. */
+/** En Argentina las guías. Afuera, OSM/Photon de esa ciudad, no un JSON fijo. */
 export async function fetchRemotePlaces(lat, lon, onPartial, options = {}) {
   const km = Number.isFinite(options.km) ? options.km : 40
   const signal = options.signal
@@ -139,7 +153,7 @@ export async function fetchRemotePlaces(lat, lon, onPartial, options = {}) {
     countryName: options.countryName || '',
     signal,
   }).catch(() => [])
-  const osmTask = overpass(osmFastGfQuery(lat, lon, km), 8000, signal).catch(() => [])
+  const osmTask = overpass(osmFastGfQuery(lat, lon, km), 7000, signal).catch(() => [])
 
   const named = await namedTask
   if (named.length) {

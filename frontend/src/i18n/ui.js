@@ -58,7 +58,7 @@ const es = {
   'places.noFilter': 'No hay resultados con ese filtro.',
   'remote.title': 'Lugares remotos',
   'remote.lead':
-    'Elegí un punto en el mapa o buscá una ciudad. Traemos locales publicados como sin TACC cerca, en cualquier parte del mundo. En el mostrador, confirmá igual.',
+    'Buscá cualquier ciudad o país del mundo. Traemos locales que OpenStreetMap publica como sin TACC cerca de ese punto. En el mostrador, confirmá igual.',
   'remote.search': 'Ciudad, barrio o país…',
   'remote.searchBtn': 'Buscar',
   'remote.pick': 'El mapa arranca en tu ubicación. Movelo o tocá otro punto para buscar ahí.',

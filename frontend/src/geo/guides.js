@@ -285,13 +285,14 @@ export function osmWorldGlutenQuery(lat, lon, km, timeout = 25, bounds) {
 out tags center;`
 }
 
-/** Consulta corta: nodos y vías con la etiqueta, sin regex. */
+/** Consulta corta: etiqueta publicada o nombre con gluten, en cualquier ciudad. */
 export function osmFastGfQuery(lat, lon, km) {
-  const radius = Math.round(Math.min(km, 25) * 1000)
-  return `[out:json][timeout:10];
+  const radius = Math.round(Math.min(km, 30) * 1000)
+  return `[out:json][timeout:8];
 (
   node["diet:gluten_free"](around:${radius},${lat},${lon});
   way["diet:gluten_free"](around:${radius},${lat},${lon});
+  node["name"~"gluten",i](around:${radius},${lat},${lon});
 );
 out tags center;`
 }

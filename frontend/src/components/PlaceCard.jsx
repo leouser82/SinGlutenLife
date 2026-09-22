@@ -60,7 +60,10 @@ export default function PlaceCard({ place, extra, to }) {
   const { t } = useI18n()
   const dist = formatDistance(place.distanceKm)
   const href = to || `/lugar/${encodeURIComponent(place.id)}`
-  const hours = displayTodayLine(todayLine(place.hours), t)
+  const parsedHours = displayTodayLine(todayLine(place.hours), t)
+  const hours =
+    parsedHours ||
+    (place.source === 'user' ? String(place.hours || '').split(/[\n;]/)[0].trim().slice(0, 48) : '')
 
   return (
     <Link to={href} className="card place-card">
@@ -95,6 +98,7 @@ export default function PlaceCard({ place, extra, to }) {
         {(place.guides || []).length > 1 ? (
           <span className="tag">{t('card.inGuides', { n: place.guides.length })}</span>
         ) : null}
+        {place.source === 'user' ? <span className="tag">{t('mine.byUser')}</span> : null}
         {extra}
       </div>
     </Link>

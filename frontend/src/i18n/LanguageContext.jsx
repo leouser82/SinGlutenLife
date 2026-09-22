@@ -1,5 +1,6 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react'
 import { cookUi } from './cookUi.js'
+import { mineUi } from './mineUi.js'
 import { detectLang, LANG_KEY, LANGS } from './langs.js'
 import { ui } from './ui.js'
 
@@ -24,8 +25,8 @@ export function LanguageProvider({ children }) {
 
   const t = useCallback(
     (key, vars) => {
-      const table = { ...(ui[lang] || ui.es), ...(cookUi[lang] || cookUi.es) }
-      let text = table[key] || ui.es[key] || cookUi.es[key] || key
+      const table = { ...(ui[lang] || ui.es), ...(cookUi[lang] || cookUi.es), ...(mineUi[lang] || mineUi.es) }
+      let text = table[key] || ui.es[key] || cookUi.es[key] || mineUi.es[key] || key
       if (vars) {
         for (const [name, value] of Object.entries(vars)) {
           text = text.replaceAll(`{${name}}`, String(value ?? ''))

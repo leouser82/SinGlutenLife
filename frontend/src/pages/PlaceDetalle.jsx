@@ -116,8 +116,13 @@ export default function PlaceDetalle() {
     setPhotoIndex(0)
   }, [place?.id])
 
+  const isUserPlace = place?.source === 'user'
+
   useEffect(() => {
-    if (!place) return
+    if (!place || isUserPlace) {
+      setLoading(false)
+      return undefined
+    }
     let alive = true
     setLoading(true)
     loadPlaceDetails(place, label, (data) => {
@@ -138,7 +143,7 @@ export default function PlaceDetalle() {
     return () => {
       alive = false
     }
-  }, [place?.id, label])
+  }, [place?.id, isUserPlace, label])
 
   if (!place) {
     return (
@@ -147,6 +152,74 @@ export default function PlaceDetalle() {
         <Link className="linkish" to="/lugares">
           {t('place.seeList')}
         </Link>
+      </main>
+    )
+  }
+
+  if (isUserPlace) {
+    const ownHours = hoursLines(place.hours)
+    return (
+      <main className="page">
+        <button className="back" onClick={() => navigate(-1)}>
+          {t('place.back')}
+        </button>
+        <p className="meta" style={{ margin: '0 0 4px' }}>
+          {labelOf(t, 'type', place.type)}
+          {Number.isFinite(place.distanceKm) ? ` · ${formatDistance(place.distanceKm)}` : ''}
+        </p>
+        <h2 className="page-title">{place.name}</h2>
+        <div className="tags" style={{ marginBottom: 14 }}>
+          <span className="tag">{t('mine.byUser')}</span>
+        </div>
+        {place.image ? (
+          <section className="place-gallery">
+            <div className="place-gallery-main">
+              <img src={place.image} alt={place.name} />
+            </div>
+          </section>
+        ) : null}
+        <section className="card place-block">
+          <h3>{t('place.about')}</h3>
+          <p>{place.description}</p>
+        </section>
+        <section className="card place-block" id="menu">
+          <h3>{t('mine.menuTitle')}</h3>
+          {hoursLines(place.menu).length ? (
+            hoursLines(place.menu).map((line) => <p key={line}>{line}</p>)
+          ) : (
+            <p>{place.menu}</p>
+          )}
+        </section>
+        <section className="card place-block" id="horarios">
+          <h3>{t('place.tabHours')}</h3>
+          {ownHours.length ? (
+            <ul className="hours-list plain">
+              {ownHours.map((line) => (
+                <li key={line}>
+                  <span>{line}</span>
+                </li>
+              ))}
+            </ul>
+          ) : (
+            <p className="note">{t('place.noHours')}</p>
+          )}
+        </section>
+        <section className="card place-block" id="opiniones">
+          <h3>{t('mine.reviewTitle')}</h3>
+          <p>{place.review ? place.review : t('mine.noReview')}</p>
+        </section>
+        <section className="card place-block">
+          <h3>{t('place.location')}</h3>
+          {place.address ? <p>{place.address}</p> : null}
+          <a className="maps-link" href={mapsUrl(place)} target="_blank" rel="noreferrer">
+            {t('place.gmaps')}
+          </a>
+        </section>
+        <div className="hero-actions" style={{ marginTop: 18 }}>
+          <a className="btn btn-light" href={mapsDirectionsUrl(place)} target="_blank" rel="noreferrer">
+            {t('card.directions')}
+          </a>
+        </div>
       </main>
     )
   }

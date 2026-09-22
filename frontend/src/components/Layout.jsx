@@ -13,6 +13,7 @@ export default function Layout() {
     { to: '/', label: t('nav.home'), icon: IconHome, end: true },
     { to: '/lugares', label: t('nav.places'), icon: IconShop },
     { to: '/lugares-remotos', label: t('nav.remote'), icon: IconGlobe },
+    ...(user ? [{ to: '/mi-lugar', label: t('nav.myPlace'), icon: IconPin }] : []),
     { to: '/recetas', label: t('nav.recipes'), icon: IconBook, end: true },
   ]
 

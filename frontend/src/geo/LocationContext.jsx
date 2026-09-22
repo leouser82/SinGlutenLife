@@ -45,6 +45,7 @@ const LocationContext = createContext({
   error: '',
   locate: () => {},
   browseArea: () => {},
+  reloadPlaces: () => {},
 })
 
 export function LocationProvider({ children }) {
@@ -88,6 +89,15 @@ export function LocationProvider({ children }) {
       setPlacesStatus('error')
     }
   }, [])
+
+  const coordsRef = useRef(null)
+  coordsRef.current = coords
+
+  const reloadPlaces = useCallback(() => {
+    const current = coordsRef.current
+    if (!current) return Promise.resolve()
+    return loadPlaces(current.lat, current.lon)
+  }, [loadPlaces])
 
   const locate = useCallback(async () => {
     const saved = readSavedLoc()
@@ -150,8 +160,9 @@ export function LocationProvider({ children }) {
       error,
       locate,
       browseArea,
+      reloadPlaces,
     }),
-    [status, coords, label, source, places, pharmacies, placesStatus, error, locate, browseArea],
+    [status, coords, label, source, places, pharmacies, placesStatus, error, locate, browseArea, reloadPlaces],
   )
 
   return <LocationContext.Provider value={value}>{children}</LocationContext.Provider>

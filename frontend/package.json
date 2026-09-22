@@ -7,6 +7,7 @@
     "dev": "vite",
     "build": "vite build",
     "lint": "oxlint",
+    "test:places": "node --test src/geo/userPlaceRank.test.mjs",
     "preview": "vite preview"
   },
   "dependencies": {

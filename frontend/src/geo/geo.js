@@ -271,29 +271,6 @@ export async function searchPlace(query) {
   return { lat: Number(hit.lat), lon: Number(hit.lon), label: hit.display_name || q }
 }
 
-/** Punto de una dirección, para ordenar el lugar del usuario por cercanía. */
-export async function geocodeAddress(query) {
-  const q = String(query || '').trim()
-  if (!q) return null
-  try {
-    const data = await fetchJson(`https://photon.komoot.io/api/?q=${encodeURIComponent(q)}&limit=1`)
-    const feat = data?.features?.[0]
-    const coords = feat?.geometry?.coordinates
-    if (Array.isArray(coords) && coords.length >= 2) {
-      const [lon, lat] = coords
-      return { lat: Number(lat), lon: Number(lon), label: featureLabel(feat.properties || {}) || q }
-    }
-  } catch {
-    // Nominatim
-  }
-  const hits = await fetchJson(
-    `https://nominatim.openstreetmap.org/search?format=jsonv2&limit=1&q=${encodeURIComponent(q)}`,
-  )
-  const hit = Array.isArray(hits) ? hits[0] : null
-  if (!hit) return null
-  return { lat: Number(hit.lat), lon: Number(hit.lon), label: hit.display_name || q }
-}
-
 export async function reverseLabel(lat, lon) {
   const url = `https://api.bigdatacloud.net/data/reverse-geocode-client?latitude=${lat}&longitude=${lon}&localityLanguage=es`
   const data = await fetchJson(url)

@@ -126,11 +126,16 @@ export function userPlacesMiddleware() {
         const hours = cleanBlock(raw.hours, 400)
         const menu = cleanBlock(raw.menu, 2000)
         const review = cleanText(raw.review, 500)
-        const address = cleanText(raw.address, 180)
+        const country = cleanText(raw.country, 80)
+        const province = cleanText(raw.province, 80)
+        const neighborhood = cleanText(raw.neighborhood, 80)
+        const street = cleanText(raw.street, 120)
+        const streetNumber = cleanText(raw.streetNumber, 20)
+        const address = cleanText(`${street} ${streetNumber}, ${neighborhood}, ${province}, ${country}`, 300)
         const image = String(raw.image || '')
         const lat = Number(raw.lat)
         const lon = Number(raw.lon)
-        if (!name || !description || !hours || !menu || !address) {
+        if (!name || !description || !hours || !country || !province || !neighborhood || !street || !streetNumber) {
           send(400, { ok: false, error: 'invalid' })
           return
         }
@@ -139,7 +144,7 @@ export function userPlacesMiddleware() {
           return
         }
         if (!Number.isFinite(lat) || !Number.isFinite(lon) || lat < -90 || lat > 90 || lon < -180 || lon > 180) {
-          send(400, { ok: false, error: 'address' })
+          send(400, { ok: false, error: 'map' })
           return
         }
         const incoming = String(raw.id || '')
@@ -164,6 +169,11 @@ export function userPlacesMiddleware() {
           hours,
           menu,
           review,
+          country,
+          province,
+          neighborhood,
+          street,
+          streetNumber,
           address,
           lat,
           lon,

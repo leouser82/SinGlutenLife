@@ -7,10 +7,11 @@
     "dev": "vite",
     "build": "vite build",
     "lint": "oxlint",
-    "test:places": "node --test src/geo/userPlaceRank.test.mjs",
+    "test:places": "node --test src/geo/userPlaceRank.test.mjs src/geo/placeAddress.test.mjs src/geo/localities.test.mjs src/geo/nominatim.test.mjs",
     "preview": "vite preview"
   },
   "dependencies": {
+    "country-state-city": "^3.2.1",
     "react": "^19.2.8",
     "react-dom": "^19.2.8",
     "react-router-dom": "^7.18.3"

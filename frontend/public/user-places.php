@@ -84,6 +84,11 @@ function row_to_place($row) {
     'hours' => $row['hours'],
     'menu' => $row['menu'],
     'review' => $row['review'],
+    'country' => $row['country'] ?? '',
+    'province' => $row['province'] ?? '',
+    'neighborhood' => $row['neighborhood'] ?? '',
+    'street' => $row['street'] ?? '',
+    'streetNumber' => $row['street_number'] ?? '',
     'address' => $row['address'],
     'lat' => (float) $row['lat'],
     'lon' => (float) $row['lon'],
@@ -98,6 +103,54 @@ function row_to_place($row) {
     'deletedAt' => $row['deleted_at'] === null ? null : (int) $row['deleted_at'],
     'deleteNote' => $row['delete_note'],
   ];
+}
+
+function ensure_place_schema($pdo) {
+  $pdo->exec(
+    "CREATE TABLE IF NOT EXISTS user_places (
+      id VARCHAR(32) NOT NULL,
+      name VARCHAR(80) NOT NULL,
+      image MEDIUMTEXT NOT NULL,
+      description VARCHAR(600) NOT NULL,
+      hours VARCHAR(400) NOT NULL,
+      menu TEXT NOT NULL,
+      review VARCHAR(500) NOT NULL DEFAULT '',
+      country VARCHAR(80) NOT NULL DEFAULT '',
+      province VARCHAR(80) NOT NULL DEFAULT '',
+      neighborhood VARCHAR(80) NOT NULL DEFAULT '',
+      street VARCHAR(120) NOT NULL DEFAULT '',
+      street_number VARCHAR(20) NOT NULL DEFAULT '',
+      address VARCHAR(300) NOT NULL,
+      lat DOUBLE NOT NULL,
+      lon DOUBLE NOT NULL,
+      author_id VARCHAR(80) NOT NULL,
+      author_name VARCHAR(60) NOT NULL,
+      author_picture VARCHAR(2000) NOT NULL DEFAULT '',
+      author_provider VARCHAR(16) NOT NULL DEFAULT 'google',
+      created_at BIGINT NOT NULL,
+      updated_at BIGINT NOT NULL,
+      deleted_at BIGINT NULL,
+      delete_note VARCHAR(400) NOT NULL DEFAULT '',
+      PRIMARY KEY (id),
+      KEY idx_author (author_id),
+      KEY idx_active (deleted_at)
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci"
+  );
+  $present = [];
+  foreach ($pdo->query('SHOW COLUMNS FROM user_places') as $col) $present[$col['Field']] = $col;
+  $add = [
+    'country' => "VARCHAR(80) NOT NULL DEFAULT ''",
+    'province' => "VARCHAR(80) NOT NULL DEFAULT ''",
+    'neighborhood' => "VARCHAR(80) NOT NULL DEFAULT ''",
+    'street' => "VARCHAR(120) NOT NULL DEFAULT ''",
+    'street_number' => "VARCHAR(20) NOT NULL DEFAULT ''",
+  ];
+  foreach ($add as $name => $def) {
+    if (!isset($present[$name])) $pdo->exec("ALTER TABLE user_places ADD COLUMN `$name` $def");
+  }
+  if (isset($present['address']) && stripos((string) $present['address']['Type'], 'varchar(180)') !== false) {
+    $pdo->exec('ALTER TABLE user_places MODIFY address VARCHAR(300) NOT NULL');
+  }
 }
 
 function places_find($pdo, $id) {
@@ -121,6 +174,7 @@ function places_read($pdo, $authorId) {
 
 try {
   $pdo = db(load_config());
+  ensure_place_schema($pdo);
 } catch (Throwable $e) {
   fail(500, 'db', $e->getMessage());
 }
@@ -163,13 +217,20 @@ try {
   $hours = clean_block($input['hours'] ?? '', 400);
   $menu = clean_block($input['menu'] ?? '', 2000);
   $review = clean_text($input['review'] ?? '', 500);
-  $address = clean_text($input['address'] ?? '', 180);
+  $country = clean_text($input['country'] ?? '', 80);
+  $province = clean_text($input['province'] ?? '', 80);
+  $neighborhood = clean_text($input['neighborhood'] ?? '', 80);
+  $street = clean_text($input['street'] ?? '', 120);
+  $streetNumber = clean_text($input['streetNumber'] ?? '', 20);
+  $address = clean_text($street . ' ' . $streetNumber . ', ' . $neighborhood . ', ' . $province . ', ' . $country, 300);
   $image = (string) ($input['image'] ?? '');
   $lat = isset($input['lat']) ? (float) $input['lat'] : NAN;
   $lon = isset($input['lon']) ? (float) $input['lon'] : NAN;
-  if ($name === '' || $description === '' || $hours === '' || $menu === '' || $address === '') fail(400, 'invalid');
+  if ($name === '' || $description === '' || $hours === '' || $country === '' || $province === '' || $neighborhood === '' || $street === '' || $streetNumber === '') {
+    fail(400, 'invalid');
+  }
   if ($image === '' || strpos($image, 'data:image/jpeg') !== 0 || strlen($image) > 900000) fail(400, 'photo');
-  if (!is_finite($lat) || !is_finite($lon) || $lat < -90 || $lat > 90 || $lon < -180 || $lon > 180) fail(400, 'address');
+  if (!is_finite($lat) || !is_finite($lon) || $lat < -90 || $lat > 90 || $lon < -180 || $lon > 180) fail(400, 'map');
 
   $incoming = (string) ($input['id'] ?? '');
   $id = preg_match('/^u-[a-z0-9]+$/i', $incoming)
@@ -188,6 +249,11 @@ try {
     'hours' => $hours,
     'menu' => $menu,
     'review' => $review,
+    'country' => $country,
+    'province' => $province,
+    'neighborhood' => $neighborhood,
+    'street' => $street,
+    'streetNumber' => $streetNumber,
     'address' => $address,
     'lat' => $lat,
     'lon' => $lon,
@@ -205,24 +271,27 @@ try {
 
   if ($prev) {
     $stmt = $pdo->prepare(
-      'UPDATE user_places SET name=?, image=?, description=?, hours=?, menu=?, review=?, address=?, lat=?, lon=?,
+      'UPDATE user_places SET name=?, image=?, description=?, hours=?, menu=?, review=?, country=?, province=?,
+        neighborhood=?, street=?, street_number=?, address=?, lat=?, lon=?,
         author_name=?, author_picture=?, author_provider=?, updated_at=?, deleted_at=NULL, delete_note=? WHERE id=?'
     );
     $stmt->execute([
       $place['name'], $place['image'], $place['description'], $place['hours'], $place['menu'], $place['review'],
+      $place['country'], $place['province'], $place['neighborhood'], $place['street'], $place['streetNumber'],
       $place['address'], $place['lat'], $place['lon'], $place['author']['name'], $place['author']['picture'],
       $place['author']['provider'], $place['updatedAt'], '', $place['id'],
     ]);
   } else {
     $stmt = $pdo->prepare(
       'INSERT INTO user_places (
-        id, name, image, description, hours, menu, review, address, lat, lon,
-        author_id, author_name, author_picture, author_provider, created_at, updated_at, deleted_at, delete_note
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NULL, ?)'
+        id, name, image, description, hours, menu, review, country, province, neighborhood, street, street_number,
+        address, lat, lon, author_id, author_name, author_picture, author_provider, created_at, updated_at, deleted_at, delete_note
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NULL, ?)'
     );
     $stmt->execute([
       $place['id'], $place['name'], $place['image'], $place['description'], $place['hours'], $place['menu'],
-      $place['review'], $place['address'], $place['lat'], $place['lon'], $place['author']['id'],
+      $place['review'], $place['country'], $place['province'], $place['neighborhood'], $place['street'],
+      $place['streetNumber'], $place['address'], $place['lat'], $place['lon'], $place['author']['id'],
       $place['author']['name'], $place['author']['picture'], $place['author']['provider'],
       $place['createdAt'], $place['updatedAt'], '',
     ]);

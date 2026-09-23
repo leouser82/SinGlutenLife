@@ -1,6 +1,7 @@
 -- SinGluten Life — lugares cargados por usuarios.
 -- Importar en phpMyAdmin con la base de las recetas seleccionada.
 -- El borrado es lógico: deleted_at y delete_note conservan la observación.
+-- La coordenada guardada es la del marcador. La dirección es la concatenación de los cinco campos.
 
 SET NAMES utf8mb4;
 
@@ -12,7 +13,12 @@ CREATE TABLE IF NOT EXISTS `user_places` (
   `hours` VARCHAR(400) NOT NULL,
   `menu` TEXT NOT NULL,
   `review` VARCHAR(500) NOT NULL DEFAULT '',
-  `address` VARCHAR(180) NOT NULL,
+  `country` VARCHAR(80) NOT NULL DEFAULT '',
+  `province` VARCHAR(80) NOT NULL DEFAULT '',
+  `neighborhood` VARCHAR(80) NOT NULL DEFAULT '',
+  `street` VARCHAR(120) NOT NULL DEFAULT '',
+  `street_number` VARCHAR(20) NOT NULL DEFAULT '',
+  `address` VARCHAR(300) NOT NULL,
   `lat` DOUBLE NOT NULL,
   `lon` DOUBLE NOT NULL,
   `author_id` VARCHAR(80) NOT NULL,

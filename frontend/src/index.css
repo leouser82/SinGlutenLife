@@ -1704,6 +1704,20 @@ input[type='range'] {
   overflow: hidden;
 }
 
+.mine-address-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+}
+
+.mine-address-row label {
+  min-width: 0;
+}
+
+.mine-address-street {
+  grid-template-columns: 1fr 7rem;
+}
+
 .cook-local label,
 .cook-pane label {
   display: block;

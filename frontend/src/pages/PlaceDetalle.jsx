@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { Link, useNavigate, useParams } from 'react-router-dom'
 import { formatDistance, mapsDirectionsUrl, mapsUrl } from '../geo/geo.js'
+import { mapEmbedUrl } from '../geo/hours.js'
 import { hoursLines } from '../geo/guideHours.js'
 import { getCachedPlace } from '../geo/placeCache.js'
 import { formatArs, getCachedReviews, loadPlaceDetails, loadPlaceReviews, mergeReviewPack } from '../geo/placeDetails.js'
@@ -158,6 +159,15 @@ export default function PlaceDetalle() {
 
   if (isUserPlace) {
     const ownHours = hoursLines(place.hours)
+    const menuText = String(place.menu || '').trim()
+    const reviewText = String(place.review || '').trim()
+    const embed = mapEmbedUrl(place)
+    const tabs = [
+      { id: 'fotos', label: t('place.tabPhotos') },
+      { id: 'menu', label: t('place.tabMenu') },
+      { id: 'horarios', label: t('place.tabHours') },
+      { id: 'opiniones', label: t('place.tabReviews') },
+    ]
     return (
       <main className="page">
         <button className="back" onClick={() => navigate(-1)}>
@@ -168,52 +178,68 @@ export default function PlaceDetalle() {
           {Number.isFinite(place.distanceKm) ? ` · ${formatDistance(place.distanceKm)}` : ''}
         </p>
         <h2 className="page-title">{place.name}</h2>
-        <div className="tags" style={{ marginBottom: 14 }}>
-          <span className="tag">{t('mine.byUser')}</span>
-        </div>
-        {place.image ? (
-          <section className="place-gallery">
-            <div className="place-gallery-main">
-              <img src={place.image} alt={place.name} />
-            </div>
-          </section>
+        {place.address ? (
+          <p className="note" style={{ marginTop: 0 }}>
+            {place.address}
+          </p>
         ) : null}
-        <section className="card place-block">
-          <h3>{t('place.about')}</h3>
-          <p>{place.description}</p>
+        <section id="fotos" className="place-gallery">
+          <div className="place-gallery-main">
+            {place.image ? <img src={place.image} alt={place.name} /> : <div className="place-photo-empty">{t('place.noPhotos')}</div>}
+          </div>
         </section>
-        <section className="card place-block" id="menu">
-          <h3>{t('mine.menuTitle')}</h3>
-          {hoursLines(place.menu).length ? (
-            hoursLines(place.menu).map((line) => <p key={line}>{line}</p>)
-          ) : (
-            <p>{place.menu}</p>
-          )}
-        </section>
-        <section className="card place-block" id="horarios">
-          <h3>{t('place.tabHours')}</h3>
-          {ownHours.length ? (
-            <ul className="hours-list plain">
-              {ownHours.map((line) => (
-                <li key={line}>
-                  <span>{line}</span>
-                </li>
-              ))}
-            </ul>
-          ) : (
-            <p className="note">{t('place.noHours')}</p>
-          )}
-        </section>
+        <ChipRow className="place-tabs">
+          {tabs.map((item) => (
+            <button
+              key={item.id}
+              type="button"
+              className={tab === item.id ? 'active' : ''}
+              onClick={() => {
+                setTab(item.id)
+                document.getElementById(item.id)?.scrollIntoView({ behavior: 'smooth', block: 'start' })
+              }}
+            >
+              {item.label}
+            </button>
+          ))}
+        </ChipRow>
+        <div className="place-split">
+          <section className="card place-block">
+            <h3>{t('place.about')}</h3>
+            <p style={{ whiteSpace: 'pre-wrap' }}>{place.description}</p>
+          </section>
+          <section className="card place-block" id="menu">
+            <h3>{t('place.offers')}</h3>
+            {menuText ? <p style={{ whiteSpace: 'pre-wrap' }}>{menuText}</p> : <p className="note">{t('place.noOffers')}</p>}
+          </section>
+        </div>
+        <div className="place-split">
+          <section className="card place-block">
+            <h3>{t('place.location')}</h3>
+            {place.address ? <p>{place.address}</p> : null}
+            <a className="maps-link" href={mapsUrl(place)} target="_blank" rel="noreferrer">
+              {t('place.gmaps')}
+            </a>
+            {embed ? <iframe title={t('place.mapTitle')} src={embed} className="place-map-embed" /> : null}
+          </section>
+          <section className="card place-block" id="horarios">
+            <h3>{t('place.tabHours')}</h3>
+            {ownHours.length ? (
+              <ul className="hours-list plain">
+                {ownHours.map((line) => (
+                  <li key={line}>
+                    <span>{line}</span>
+                  </li>
+                ))}
+              </ul>
+            ) : (
+              <p className="note">{t('place.noHours')}</p>
+            )}
+          </section>
+        </div>
         <section className="card place-block" id="opiniones">
-          <h3>{t('mine.reviewTitle')}</h3>
-          <p>{place.review ? place.review : t('mine.noReview')}</p>
-        </section>
-        <section className="card place-block">
-          <h3>{t('place.location')}</h3>
-          {place.address ? <p>{place.address}</p> : null}
-          <a className="maps-link" href={mapsUrl(place)} target="_blank" rel="noreferrer">
-            {t('place.gmaps')}
-          </a>
+          <h3>{t('place.reviews')}</h3>
+          {reviewText ? <p style={{ whiteSpace: 'pre-wrap' }}>{reviewText}</p> : <p className="note">{t('place.noReviews')}</p>}
         </section>
         <div className="hero-actions" style={{ marginTop: 18 }}>
           <a className="btn btn-light" href={mapsDirectionsUrl(place)} target="_blank" rel="noreferrer">

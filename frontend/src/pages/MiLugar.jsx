@@ -519,7 +519,7 @@ export default function MiLugar() {
             </label>
             <label>
               {t('mine.description')}
-              <textarea value={form.description} onChange={(event) => patch({ description: event.target.value })} maxLength={600} rows={3} />
+              <textarea value={form.description} onChange={(event) => patch({ description: event.target.value })} maxLength={2000} rows={6} />
             </label>
             <label>
               {t('mine.hours')}
@@ -534,53 +534,55 @@ export default function MiLugar() {
               {t('mine.review')}
               <textarea value={form.review} onChange={(event) => patch({ review: event.target.value })} maxLength={500} rows={3} />
             </label>
-            <label>
-              {t('mine.country')}
-              <select
-                value={form.countryCode}
-                onChange={(event) => {
-                  const code = event.target.value
-                  const country = countries.find((item) => item.code === code)
-                  touchAddress({
-                    countryCode: code,
-                    countryName: country?.name || '',
-                    provinceCode: '',
-                    provinceName: '',
-                    neighborhood: '',
-                  })
-                }}
-              >
-                <option value="">{t('mine.country')}</option>
-                {countries.map((item) => (
-                  <option key={item.code} value={item.code}>
-                    {item.name}
-                  </option>
-                ))}
-              </select>
-            </label>
-            <label>
-              {t('mine.province')}
-              <select
-                value={form.provinceCode}
-                disabled={!form.countryCode}
-                onChange={(event) => {
-                  const code = event.target.value
-                  const province = provinces.find((item) => item.code === code)
-                  touchAddress({
-                    provinceCode: code,
-                    provinceName: province?.name || '',
-                    neighborhood: '',
-                  })
-                }}
-              >
-                <option value="">{t('mine.province')}</option>
-                {provinces.map((item) => (
-                  <option key={item.code} value={item.code}>
-                    {item.name}
-                  </option>
-                ))}
-              </select>
-            </label>
+            <div className="mine-address-row">
+              <label>
+                {t('mine.country')}
+                <select
+                  value={form.countryCode}
+                  onChange={(event) => {
+                    const code = event.target.value
+                    const country = countries.find((item) => item.code === code)
+                    touchAddress({
+                      countryCode: code,
+                      countryName: country?.name || '',
+                      provinceCode: '',
+                      provinceName: '',
+                      neighborhood: '',
+                    })
+                  }}
+                >
+                  <option value="">{t('mine.country')}</option>
+                  {countries.map((item) => (
+                    <option key={item.code} value={item.code}>
+                      {item.name}
+                    </option>
+                  ))}
+                </select>
+              </label>
+              <label>
+                {t('mine.province')}
+                <select
+                  value={form.provinceCode}
+                  disabled={!form.countryCode}
+                  onChange={(event) => {
+                    const code = event.target.value
+                    const province = provinces.find((item) => item.code === code)
+                    touchAddress({
+                      provinceCode: code,
+                      provinceName: province?.name || '',
+                      neighborhood: '',
+                    })
+                  }}
+                >
+                  <option value="">{t('mine.province')}</option>
+                  {provinces.map((item) => (
+                    <option key={item.code} value={item.code}>
+                      {item.name}
+                    </option>
+                  ))}
+                </select>
+              </label>
+            </div>
             <label>
               {t('mine.neighborhood')}
               <select
@@ -596,14 +598,16 @@ export default function MiLugar() {
                 ))}
               </select>
             </label>
-            <label>
-              {t('mine.street')}
-              <input value={form.street} onChange={(event) => touchAddress({ street: event.target.value })} maxLength={120} />
-            </label>
-            <label>
-              {t('mine.streetNumber')}
-              <input value={form.streetNumber} onChange={(event) => touchAddress({ streetNumber: event.target.value })} maxLength={20} />
-            </label>
+            <div className="mine-address-row mine-address-street">
+              <label>
+                {t('mine.street')}
+                <input value={form.street} onChange={(event) => touchAddress({ street: event.target.value })} maxLength={120} />
+              </label>
+              <label>
+                {t('mine.streetNumber')}
+                <input value={form.streetNumber} onChange={(event) => touchAddress({ streetNumber: event.target.value })} maxLength={20} />
+              </label>
+            </div>
             <PlaceMap lat={form.lat} lon={form.lon} fallback={coords} onMove={onMarkerMove} />
             {error ? <p className="cook-error">{error}</p> : null}
             <div className="cook-mine-head-actions">

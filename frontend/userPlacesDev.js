@@ -122,7 +122,7 @@ export function userPlacesMiddleware() {
         }
 
         const name = cleanText(raw.name, 80)
-        const description = cleanBlock(raw.description, 600)
+        const description = cleanBlock(raw.description, 2000)
         const hours = cleanBlock(raw.hours, 400)
         const menu = cleanBlock(raw.menu, 2000)
         const review = cleanText(raw.review, 500)

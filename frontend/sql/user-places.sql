@@ -9,7 +9,7 @@ CREATE TABLE IF NOT EXISTS `user_places` (
   `id` VARCHAR(32) NOT NULL,
   `name` VARCHAR(80) NOT NULL,
   `image` MEDIUMTEXT NOT NULL,
-  `description` VARCHAR(600) NOT NULL,
+  `description` VARCHAR(2000) NOT NULL,
   `hours` VARCHAR(400) NOT NULL,
   `menu` TEXT NOT NULL,
   `review` VARCHAR(500) NOT NULL DEFAULT '',

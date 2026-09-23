@@ -111,7 +111,7 @@ function ensure_place_schema($pdo) {
       id VARCHAR(32) NOT NULL,
       name VARCHAR(80) NOT NULL,
       image MEDIUMTEXT NOT NULL,
-      description VARCHAR(600) NOT NULL,
+      description VARCHAR(2000) NOT NULL,
       hours VARCHAR(400) NOT NULL,
       menu TEXT NOT NULL,
       review VARCHAR(500) NOT NULL DEFAULT '',
@@ -150,6 +150,9 @@ function ensure_place_schema($pdo) {
   }
   if (isset($present['address']) && stripos((string) $present['address']['Type'], 'varchar(180)') !== false) {
     $pdo->exec('ALTER TABLE user_places MODIFY address VARCHAR(300) NOT NULL');
+  }
+  if (isset($present['description']) && stripos((string) $present['description']['Type'], 'varchar(600)') !== false) {
+    $pdo->exec('ALTER TABLE user_places MODIFY description VARCHAR(2000) NOT NULL');
   }
 }
 
@@ -213,7 +216,7 @@ try {
   }
 
   $name = clean_text($input['name'] ?? '', 80);
-  $description = clean_block($input['description'] ?? '', 600);
+  $description = clean_block($input['description'] ?? '', 2000);
   $hours = clean_block($input['hours'] ?? '', 400);
   $menu = clean_block($input['menu'] ?? '', 2000);
   $review = clean_text($input['review'] ?? '', 500);
